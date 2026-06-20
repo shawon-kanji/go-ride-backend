@@ -28,6 +28,8 @@ type DBConfig struct {
 type JWTConfig struct {
 	Secret        string
 	ExpiryMinutes int
+	Issuer        string
+	Audience      string
 }
 
 func Load() (*Config, error) {
@@ -56,6 +58,8 @@ func Load() (*Config, error) {
 		JWT: JWTConfig{
 			Secret:        getEnv("JWT_SECRET", "change-me-in-production"),
 			ExpiryMinutes: jwtExpiry,
+			Issuer:        getEnv("JWT_ISSUER", "go-ride-backend"),
+			Audience:      getEnv("JWT_AUDIENCE", "go-ride-clients"),
 		},
 	}
 

@@ -1,6 +1,6 @@
 # Go Ride Backend Project Roadmap
 
-Last Updated: 2026-06-20 (Revised sequencing for driver auth)
+Last Updated: 2026-06-20 (Revised sequencing for driver auth and STP deferrals)
 Owner: Backend Team
 Primary Tracking File: doc/PROJECT_ROADMAP.md
 
@@ -23,7 +23,7 @@ Primary Tracking File: doc/PROJECT_ROADMAP.md
 | Phase | Name | Status | Target Outcome |
 | --- | --- | --- | --- |
 | 0 | Foundation and Architecture | Completed | DDD boilerplate, app bootstrapping, config, database wiring |
-| 1 | Auth Module Stabilization | Not Started | Production-ready signup/login with robust validation and error handling |
+| 1 | Auth Module Stabilization | Completed | Production-ready signup/login with robust validation and error handling |
 | 2 | Identity Expansion (Rider + Driver Auth) | Not Started | Minimal driver signup/login and role-aware auth without full driver management |
 | 3 | Ride Booking Core | Not Started | End-to-end ride request lifecycle with assignment-ready contract |
 | 4 | Driver and Fleet Domain | Not Started | Driver onboarding, availability, and assignment readiness |
@@ -32,6 +32,7 @@ Primary Tracking File: doc/PROJECT_ROADMAP.md
 | 7 | Observability and Reliability | Not Started | Monitoring, tracing, resilience, and operability |
 | 8 | Security and Compliance Hardening | Not Started | Hardened auth, data protection, and policy compliance |
 | 9 | Testing, QA, and Release | Not Started | High-confidence release candidate with CI gates |
+| 10 | Post-Completion STP Hardening | Not Started | Deferred auth hardening controls after core app completion |
 
 ---
 
@@ -62,26 +63,23 @@ Goal: Make authentication reliable, secure, and extensible.
 
 ### Features
 
-- [ ] Strict request validation for signup and login inputs
-- [ ] Consistent API error model for all auth endpoints
-- [ ] JWT claims standardization and expiry policy tuning
-- [ ] Access token guard for protected routes
-- [ ] Duplicate email handling with deterministic response codes
-- [ ] Optional refresh token model and rotation strategy
-- [ ] Rate limiting for auth endpoints
-- [ ] Brute-force protection policy
+- [x] Strict request validation for signup and login inputs
+- [x] Consistent API error model for all auth endpoints
+- [x] JWT claims standardization and expiry policy tuning
+- [x] Access token guard for protected routes
+- [x] Duplicate email handling with deterministic response codes
 
 ### Technical Tasks
 
-- [ ] Add validation package wiring and per-field error responses
-- [ ] Add centralized HTTP error mapper for all handlers
-- [ ] Add tests for signup/login happy path and failure path
-- [ ] Add security-focused tests for expired and malformed tokens
+- [x] Add validation package wiring and per-field error responses
+- [x] Add centralized HTTP error mapper for all handlers
+- [x] Add tests for signup/login happy path and failure path
+- [x] Add security-focused tests for expired and malformed tokens
 
 ### Exit Criteria
 
-- [ ] Auth endpoints satisfy functional and security test suite
-- [ ] No plaintext secret leakage in logs or responses
+- [x] Auth endpoints satisfy functional and security test suite
+- [x] No plaintext secret leakage in logs or responses
 
 ---
 
@@ -298,12 +296,38 @@ Goal: Produce a stable release process with confidence gates.
 
 ---
 
+## Phase 10: Post-Completion STP Hardening
+
+Goal: Complete deferred auth security tasks after overall app delivery milestones are done.
+
+### Features
+
+- [ ] Optional refresh token model and rotation strategy
+- [ ] Rate limiting for auth endpoints
+- [ ] Brute-force protection policy
+
+### Technical Tasks
+
+- [ ] Add refresh-token storage strategy and token invalidation policy
+- [ ] Add auth rate-limiter middleware and endpoint-specific thresholds
+- [ ] Add login attempt tracking and temporary lockout rules
+- [ ] Add tests for token rotation, throttling, and lockout behavior
+
+### Exit Criteria
+
+- [ ] Deferred auth hardening controls are implemented and tested
+- [ ] Security review confirms acceptable auth abuse resistance
+
+---
+
 ## Progress Log
 
 | Date | Phase | Update | By |
 | --- | --- | --- | --- |
 | 2026-06-20 | 0 | Initial DDD scaffold, auth module skeleton, GORM PostgreSQL wiring, docker compose, and base docs created. | Copilot |
 | 2026-06-20 | 2/3 | Roadmap revised: minimal driver signup/login moved earlier; ride booking core kept ahead of full driver/fleet management using assignment-ready contract. | Copilot |
+| 2026-06-20 | 1/10 | Deferred refresh tokens, auth rate limiting, and brute-force protection to post-completion STP hardening phase. | Copilot |
+| 2026-06-20 | 1 | Completed Phase 1 with strict request validation, unified auth error model, standardized JWT claims (issuer/audience/expiry), and auth test coverage for happy/failure/expired/malformed token paths. | Copilot |
 
 ## Risks and Dependencies
 

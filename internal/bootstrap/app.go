@@ -31,7 +31,7 @@ func Build(cfg *config.Config) (*App, error) {
 
 	userRepo := repository.NewUserRepositoryGorm(gormDB)
 	hasher := security.NewBcryptHasher()
-	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes)
+	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience)
 
 	signupUseCase := appuser.NewSignupUseCase(userRepo, hasher)
 	loginUseCase := appuser.NewLoginUseCase(userRepo, hasher, jwtManager)

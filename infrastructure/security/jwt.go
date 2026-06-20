@@ -10,6 +10,8 @@ import (
 type JWTManager struct {
 	secretKey     []byte
 	expiryMinutes int
+	issuer        string
+	audience      string
 }
 
 type Claims struct {
@@ -18,8 +20,13 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func NewJWTManager(secret string, expiryMinutes int) *JWTManager {
-	return &JWTManager{secretKey: []byte(secret), expiryMinutes: expiryMinutes}
+func NewJWTManager(secret string, expiryMinutes int, issuer string, audience string) *JWTManager {
+	return &JWTManager{
+		secretKey:     []byte(secret),
+		expiryMinutes: expiryMinutes,
+		issuer:        issuer,
+		audience:      audience,
+	}
 }
 
 func (m *JWTManager) Generate(userID string, email string) (string, error) {
@@ -28,7 +35,11 @@ func (m *JWTManager) Generate(userID string, email string) (string, error) {
 		UserID: userID,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    m.issuer,
+			Audience:  []string{m.audience},
 			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(m.expiryMinutes) * time.Minute)),
 		},
 	}
@@ -43,7 +54,7 @@ func (m *JWTManager) Parse(tokenValue string) (*Claims, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return m.secretKey, nil
-	})
+	}, jwt.WithIssuer(m.issuer), jwt.WithAudience(m.audience), jwt.WithExpirationRequired())
 	if err != nil {
 		return nil, err
 	}

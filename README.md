@@ -48,6 +48,8 @@ go run ./cmd/api
 
 Server starts on `APP_PORT` (default `8080`).
 
+JWT configuration supports issuer/audience claim validation through `JWT_ISSUER` and `JWT_AUDIENCE` in `.env`.
+
 ## API Endpoints
 
 - `POST /api/v1/auth/signup`

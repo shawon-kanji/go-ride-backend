@@ -23,7 +23,7 @@ func NewAuthHandler(signupUseCase *appuser.SignupUseCase, loginUseCase *appuser.
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req appuser.SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
 		return
 	}
 
@@ -39,7 +39,7 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req appuser.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
 		return
 	}
 
@@ -56,11 +56,6 @@ func (h *AuthHandler) handleError(c *gin.Context, err error) {
 	if errors.Is(err, user.ErrEmailAlreadyTaken) || errors.Is(err, user.ErrInvalidCredential) {
 		httpErr := apperror.Map(err)
 		c.JSON(httpErr.Status, gin.H{"code": httpErr.Code, "message": httpErr.Message})
-		return
-	}
-
-	if err.Error() == "email and password are required" || err.Error() == "password must be at least 8 characters" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

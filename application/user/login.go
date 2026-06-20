@@ -19,10 +19,11 @@ func NewLoginUseCase(repo domainuser.Repository, hasher PasswordHasher, tokens T
 }
 
 func (uc *LoginUseCase) Execute(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
-	email := strings.ToLower(strings.TrimSpace(req.Email))
-	if email == "" || req.Password == "" {
-		return nil, errors.New("email and password are required")
+	if err := validateLoginRequest(req); err != nil {
+		return nil, err
 	}
+
+	email := strings.ToLower(strings.TrimSpace(req.Email))
 
 	usr, err := uc.repo.GetByEmail(ctx, email)
 	if err != nil {

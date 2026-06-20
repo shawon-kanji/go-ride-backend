@@ -18,13 +18,11 @@ func NewSignupUseCase(repo domainuser.Repository, hasher PasswordHasher) *Signup
 }
 
 func (uc *SignupUseCase) Execute(ctx context.Context, req SignupRequest) (*SignupResponse, error) {
+	if err := validateSignupRequest(req); err != nil {
+		return nil, err
+	}
+
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	if req.Email == "" || req.Password == "" {
-		return nil, errors.New("email and password are required")
-	}
-	if len(req.Password) < 8 {
-		return nil, errors.New("password must be at least 8 characters")
-	}
 
 	existing, err := uc.repo.GetByEmail(ctx, req.Email)
 	if err != nil && !errors.Is(err, domainuser.ErrUserNotFound) {
