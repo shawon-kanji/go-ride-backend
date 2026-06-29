@@ -37,7 +37,11 @@ func (uc *LoginUseCase) Execute(ctx context.Context, req LoginRequest) (*LoginRe
 		return nil, domainuser.ErrInvalidCredential
 	}
 
-	token, err := uc.tokens.Generate(usr.ID.String(), usr.Email)
+	if usr.AccountStatus == domainuser.AccountStatusDeactivated {
+		return nil, domainuser.ErrAccountDeactivated
+	}
+
+	token, err := uc.tokens.Generate(usr.ID.String(), usr.Email, "rider")
 	if err != nil {
 		return nil, err
 	}

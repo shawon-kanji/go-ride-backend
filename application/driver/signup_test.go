@@ -1,74 +1,29 @@
-package user
+package driver
 
 import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
-	domainuser "go-ride-backend/domain/user"
+	domaindriver "go-ride-backend/domain/driver"
 
 	"github.com/google/uuid"
 )
 
-type fakeUserRepo struct {
-	byEmail map[string]*domainuser.User
+type fakeDriverRepo struct {
+	byEmail map[string]*domaindriver.Driver
 }
 
-func (r *fakeUserRepo) Create(_ context.Context, user *domainuser.User) error {
-	r.byEmail[user.Email] = user
+func (r *fakeDriverRepo) Create(_ context.Context, driver *domaindriver.Driver) error {
+	r.byEmail[driver.Email] = driver
 	return nil
 }
 
-func (r *fakeUserRepo) GetByEmail(_ context.Context, email string) (*domainuser.User, error) {
+func (r *fakeDriverRepo) GetByEmail(_ context.Context, email string) (*domaindriver.Driver, error) {
 	if u, ok := r.byEmail[email]; ok {
 		return u, nil
 	}
-	return nil, domainuser.ErrUserNotFound
-}
-
-func (r *fakeUserRepo) GetByID(_ context.Context, id uuid.UUID) (*domainuser.User, error) {
-	for _, u := range r.byEmail {
-		if u.ID == id {
-			return u, nil
-		}
-	}
-	return nil, domainuser.ErrUserNotFound
-}
-
-func (r *fakeUserRepo) UpdateProfile(_ context.Context, id uuid.UUID, firstName string, lastName string) (*domainuser.User, error) {
-	for _, u := range r.byEmail {
-		if u.ID == id {
-			u.FirstName = firstName
-			u.LastName = lastName
-			u.UpdatedAt = time.Now().UTC()
-			return u, nil
-		}
-	}
-	return nil, domainuser.ErrUserNotFound
-}
-
-func (r *fakeUserRepo) UpdatePassword(_ context.Context, id uuid.UUID, passwordHash string) error {
-	for _, u := range r.byEmail {
-		if u.ID == id {
-			u.PasswordHash = passwordHash
-			u.UpdatedAt = time.Now().UTC()
-			return nil
-		}
-	}
-	return domainuser.ErrUserNotFound
-}
-
-func (r *fakeUserRepo) Deactivate(_ context.Context, id uuid.UUID, at time.Time) error {
-	for _, u := range r.byEmail {
-		if u.ID == id {
-			u.AccountStatus = domainuser.AccountStatusDeactivated
-			u.DeactivatedAt = &at
-			u.UpdatedAt = at
-			return nil
-		}
-	}
-	return domainuser.ErrUserNotFound
+	return nil, domaindriver.ErrDriverNotFound
 }
 
 type fakeHasher struct{}
@@ -91,7 +46,7 @@ func (t *fakeTokens) Generate(userID string, email string, role string) (string,
 }
 
 func TestSignupUseCaseExecuteSuccess(t *testing.T) {
-	repo := &fakeUserRepo{byEmail: map[string]*domainuser.User{}}
+	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{}}
 	hasher := &fakeHasher{}
 	uc := NewSignupUseCase(repo, hasher)
 
@@ -104,16 +59,22 @@ func TestSignupUseCaseExecuteSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if resp == nil || resp.User.Email != "foo@example.com" {
+	if resp == nil || resp.Driver.Email != "foo@example.com" {
 		t.Fatalf("unexpected response: %+v", resp)
 	}
 	if repo.byEmail["foo@example.com"] == nil {
-		t.Fatalf("user was not persisted")
+		t.Fatalf("driver was not persisted")
+	}
+	if resp.Driver.IsEmailVerified {
+		t.Fatalf("expected is_email_verified=false by default")
+	}
+	if resp.Driver.AccountStatus != domaindriver.AccountStatusPending {
+		t.Fatalf("expected account status pending, got %s", resp.Driver.AccountStatus)
 	}
 }
 
 func TestSignupUseCaseExecuteDuplicateEmail(t *testing.T) {
-	repo := &fakeUserRepo{byEmail: map[string]*domainuser.User{
+	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{
 		"foo@example.com": {
 			ID:           uuid.New(),
 			Email:        "foo@example.com",
@@ -131,13 +92,13 @@ func TestSignupUseCaseExecuteDuplicateEmail(t *testing.T) {
 		FirstName: "Foo",
 		LastName:  "Bar",
 	})
-	if !errors.Is(err, domainuser.ErrEmailAlreadyTaken) {
+	if !errors.Is(err, domaindriver.ErrEmailAlreadyTaken) {
 		t.Fatalf("expected ErrEmailAlreadyTaken, got %v", err)
 	}
 }
 
 func TestSignupUseCaseExecuteValidation(t *testing.T) {
-	repo := &fakeUserRepo{byEmail: map[string]*domainuser.User{}}
+	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{}}
 	hasher := &fakeHasher{}
 	uc := NewSignupUseCase(repo, hasher)
 

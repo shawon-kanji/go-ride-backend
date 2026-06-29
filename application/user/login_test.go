@@ -65,3 +65,24 @@ func TestLoginUseCaseExecuteValidation(t *testing.T) {
 		t.Fatalf("expected ValidationError, got %v", err)
 	}
 }
+
+func TestLoginUseCaseExecuteDeactivatedAccount(t *testing.T) {
+	repo := &fakeUserRepo{byEmail: map[string]*domainuser.User{
+		"foo@example.com": {
+			ID:            uuid.New(),
+			Email:         "foo@example.com",
+			PasswordHash:  "hashed:password123",
+			FirstName:     "Foo",
+			LastName:      "Bar",
+			AccountStatus: domainuser.AccountStatusDeactivated,
+		},
+	}}
+	hasher := &fakeHasher{}
+	tokens := &fakeTokens{}
+	uc := NewLoginUseCase(repo, hasher, tokens)
+
+	_, err := uc.Execute(context.Background(), LoginRequest{Email: "foo@example.com", Password: "password123"})
+	if !errors.Is(err, domainuser.ErrAccountDeactivated) {
+		t.Fatalf("expected ErrAccountDeactivated, got %v", err)
+	}
+}

@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(authHandler *handlers.AuthHandler, jwtManager *security.JWTManager) *gin.Engine {
+func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.DriverHandler, jwtManager *security.JWTManager) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(middleware.Recovery())
@@ -23,12 +23,26 @@ func NewRouter(authHandler *handlers.AuthHandler, jwtManager *security.JWTManage
 			auth.POST("/login", authHandler.Login)
 		}
 
+		driverAuth := v1.Group("/driver/auth")
+		{
+			driverAuth.POST("/signup", driverHandler.Signup)
+			driverAuth.POST("/login", driverHandler.Login)
+		}
+
 		protected := v1.Group("")
 		protected.Use(middleware.AuthRequired(jwtManager))
-		protected.GET("/me", func(c *gin.Context) {
+		protected.GET("/me", authHandler.Me)
+		protected.PATCH("/profile", authHandler.UpdateProfile)
+		protected.POST("/change-password", authHandler.ChangePassword)
+		protected.POST("/deactivate", authHandler.DeactivateAccount)
+
+		driverProtected := v1.Group("/driver")
+		driverProtected.Use(middleware.AuthRequiredRole(jwtManager, "driver"))
+		driverProtected.GET("/me", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
-				"user_id":    c.GetString("user_id"),
-				"user_email": c.GetString("user_email"),
+				"driver_id":    c.GetString("user_id"),
+				"driver_email": c.GetString("user_email"),
+				"driver_role":  c.GetString("user_role"),
 			})
 		})
 	}

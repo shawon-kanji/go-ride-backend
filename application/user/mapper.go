@@ -13,21 +13,23 @@ func NewUserFromSignup(req SignupRequest, hashedPassword string) *domainuser.Use
 	now := time.Now().UTC()
 
 	return &domainuser.User{
-		ID:           uuid.New(),
-		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
-		PasswordHash: hashedPassword,
-		FirstName:    strings.TrimSpace(req.FirstName),
-		LastName:     strings.TrimSpace(req.LastName),
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:            uuid.New(),
+		Email:         strings.ToLower(strings.TrimSpace(req.Email)),
+		PasswordHash:  hashedPassword,
+		FirstName:     strings.TrimSpace(req.FirstName),
+		LastName:      strings.TrimSpace(req.LastName),
+		AccountStatus: domainuser.AccountStatusActive,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 }
 
 func ToUserResponse(u *domainuser.User) UserResponse {
 	return UserResponse{
-		ID:        u.ID.String(),
-		Email:     u.Email,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
+		ID:            u.ID.String(),
+		Email:         u.Email,
+		FirstName:     u.FirstName,
+		LastName:      u.LastName,
+		AccountStatus: u.AccountStatus,
 	}
 }

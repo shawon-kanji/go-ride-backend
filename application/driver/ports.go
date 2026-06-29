@@ -1,4 +1,4 @@
-package user
+package driver
 
 // PasswordHasher abstracts password hashing and verification.
 type PasswordHasher interface {

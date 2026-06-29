@@ -12,12 +12,30 @@ import (
 )
 
 type AuthHandler struct {
-	signupUseCase *appuser.SignupUseCase
-	loginUseCase  *appuser.LoginUseCase
+	signupUseCase            *appuser.SignupUseCase
+	loginUseCase             *appuser.LoginUseCase
+	getProfileUseCase        *appuser.GetProfileUseCase
+	updateProfileUseCase     *appuser.UpdateProfileUseCase
+	changePasswordUseCase    *appuser.ChangePasswordUseCase
+	deactivateAccountUseCase *appuser.DeactivateAccountUseCase
 }
 
-func NewAuthHandler(signupUseCase *appuser.SignupUseCase, loginUseCase *appuser.LoginUseCase) *AuthHandler {
-	return &AuthHandler{signupUseCase: signupUseCase, loginUseCase: loginUseCase}
+func NewAuthHandler(
+	signupUseCase *appuser.SignupUseCase,
+	loginUseCase *appuser.LoginUseCase,
+	getProfileUseCase *appuser.GetProfileUseCase,
+	updateProfileUseCase *appuser.UpdateProfileUseCase,
+	changePasswordUseCase *appuser.ChangePasswordUseCase,
+	deactivateAccountUseCase *appuser.DeactivateAccountUseCase,
+) *AuthHandler {
+	return &AuthHandler{
+		signupUseCase:            signupUseCase,
+		loginUseCase:             loginUseCase,
+		getProfileUseCase:        getProfileUseCase,
+		updateProfileUseCase:     updateProfileUseCase,
+		changePasswordUseCase:    changePasswordUseCase,
+		deactivateAccountUseCase: deactivateAccountUseCase,
+	}
 }
 
 func (h *AuthHandler) Signup(c *gin.Context) {
@@ -44,6 +62,62 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	response, err := h.loginUseCase.Execute(c.Request.Context(), req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID := c.GetString("user_id")
+	response, err := h.getProfileUseCase.Execute(c.Request.Context(), userID)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": response})
+}
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	var req appuser.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
+		return
+	}
+
+	userID := c.GetString("user_id")
+	response, err := h.updateProfileUseCase.Execute(c.Request.Context(), userID, req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": response})
+}
+
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req appuser.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
+		return
+	}
+
+	userID := c.GetString("user_id")
+	response, err := h.changePasswordUseCase.Execute(c.Request.Context(), userID, req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *AuthHandler) DeactivateAccount(c *gin.Context) {
+	userID := c.GetString("user_id")
+	response, err := h.deactivateAccountUseCase.Execute(c.Request.Context(), userID)
 	if err != nil {
 		h.handleError(c, err)
 		return

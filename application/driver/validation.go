@@ -1,4 +1,4 @@
-package user
+package driver
 
 import (
 	"fmt"
@@ -41,37 +41,6 @@ func validateLoginRequest(req LoginRequest) error {
 			return ValidationError{Message: formatFieldError(first)}
 		}
 		return ValidationError{Message: "invalid login request"}
-	}
-
-	return nil
-}
-
-func validateUpdateProfileRequest(req UpdateProfileRequest) error {
-	req.FirstName = strings.TrimSpace(req.FirstName)
-	req.LastName = strings.TrimSpace(req.LastName)
-
-	if err := validate.Struct(req); err != nil {
-		if verrs, ok := err.(validator.ValidationErrors); ok {
-			first := verrs[0]
-			return ValidationError{Message: formatFieldError(first)}
-		}
-		return ValidationError{Message: "invalid update profile request"}
-	}
-
-	return nil
-}
-
-func validateChangePasswordRequest(req ChangePasswordRequest) error {
-	if err := validate.Struct(req); err != nil {
-		if verrs, ok := err.(validator.ValidationErrors); ok {
-			first := verrs[0]
-			return ValidationError{Message: formatFieldError(first)}
-		}
-		return ValidationError{Message: "invalid change password request"}
-	}
-
-	if req.OldPassword == req.NewPassword {
-		return ValidationError{Message: "new password must be different from old password"}
 	}
 
 	return nil

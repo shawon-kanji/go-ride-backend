@@ -4,7 +4,9 @@ import (
 	"errors"
 	"net/http"
 
+	appdriver "go-ride-backend/application/driver"
 	appuser "go-ride-backend/application/user"
+	domaindriver "go-ride-backend/domain/driver"
 	domainuser "go-ride-backend/domain/user"
 )
 
@@ -19,17 +21,30 @@ func (e HTTPError) Error() string {
 }
 
 func Map(err error) HTTPError {
+	var driverValidationErr appdriver.ValidationError
 	var validationErr appuser.ValidationError
 
 	switch {
+	case errors.As(err, &driverValidationErr):
+		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: driverValidationErr.Message}
 	case errors.As(err, &validationErr):
 		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: validationErr.Message}
+	case errors.Is(err, domaindriver.ErrEmailAlreadyTaken):
+		return HTTPError{Status: http.StatusConflict, Code: "EMAIL_ALREADY_TAKEN", Message: err.Error()}
+	case errors.Is(err, domaindriver.ErrInvalidCredential):
+		return HTTPError{Status: http.StatusUnauthorized, Code: "INVALID_CREDENTIALS", Message: err.Error()}
+	case errors.Is(err, domaindriver.ErrDriverNotFound):
+		return HTTPError{Status: http.StatusNotFound, Code: "DRIVER_NOT_FOUND", Message: err.Error()}
 	case errors.Is(err, domainuser.ErrEmailAlreadyTaken):
 		return HTTPError{Status: http.StatusConflict, Code: "EMAIL_ALREADY_TAKEN", Message: err.Error()}
 	case errors.Is(err, domainuser.ErrInvalidCredential):
 		return HTTPError{Status: http.StatusUnauthorized, Code: "INVALID_CREDENTIALS", Message: err.Error()}
 	case errors.Is(err, domainuser.ErrUserNotFound):
 		return HTTPError{Status: http.StatusNotFound, Code: "USER_NOT_FOUND", Message: err.Error()}
+	case errors.Is(err, domainuser.ErrAccountDeactivated):
+		return HTTPError{Status: http.StatusForbidden, Code: "ACCOUNT_DEACTIVATED", Message: err.Error()}
+	case errors.Is(err, domainuser.ErrInvalidOldPassword):
+		return HTTPError{Status: http.StatusUnauthorized, Code: "INVALID_OLD_PASSWORD", Message: err.Error()}
 	default:
 		return HTTPError{Status: http.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: "internal server error"}
 	}

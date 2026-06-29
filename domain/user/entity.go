@@ -6,13 +6,20 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	AccountStatusActive      = "active"
+	AccountStatusDeactivated = "deactivated"
+)
+
 // User is the core user domain entity.
 type User struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash string
-	FirstName    string
-	LastName     string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID            uuid.UUID
+	Email         string
+	PasswordHash  string
+	FirstName     string
+	LastName      string
+	AccountStatus string
+	DeactivatedAt *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }

@@ -17,6 +17,7 @@ type JWTManager struct {
 type Claims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -29,11 +30,12 @@ func NewJWTManager(secret string, expiryMinutes int, issuer string, audience str
 	}
 }
 
-func (m *JWTManager) Generate(userID string, email string) (string, error) {
+func (m *JWTManager) Generate(userID string, email string, role string) (string, error) {
 	now := time.Now().UTC()
 	claims := Claims{
 		UserID: userID,
 		Email:  email,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			Issuer:    m.issuer,
