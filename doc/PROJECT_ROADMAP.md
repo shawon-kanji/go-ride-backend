@@ -1,6 +1,6 @@
 # Go Ride Backend Project Roadmap
 
-Last Updated: 2026-06-20 (Revised sequencing for driver auth and STP deferrals)
+Last Updated: 2026-06-29 (Phase 2 implementation progress: driver auth + lifecycle APIs)
 Owner: Backend Team
 Primary Tracking File: doc/PROJECT_ROADMAP.md
 
@@ -24,7 +24,7 @@ Primary Tracking File: doc/PROJECT_ROADMAP.md
 | --- | --- | --- | --- |
 | 0 | Foundation and Architecture | Completed | DDD boilerplate, app bootstrapping, config, database wiring |
 | 1 | Auth Module Stabilization | Completed | Production-ready signup/login with robust validation and error handling |
-| 2 | Identity Expansion (Rider + Driver Auth) | Not Started | Minimal driver signup/login and role-aware auth without full driver management |
+| 2 | Identity Expansion (Rider + Driver Auth) | In Progress | Minimal driver signup/login and role-aware auth without full driver management |
 | 3 | Ride Booking Core | Not Started | End-to-end ride request lifecycle with assignment-ready contract |
 | 4 | Driver and Fleet Domain | Not Started | Driver onboarding, availability, and assignment readiness |
 | 5 | Pricing and Payments | Not Started | Fare calculation, payment intents, and transaction records |
@@ -89,34 +89,34 @@ Goal: Add minimal driver authentication and role-aware identity while keeping fu
 
 ### Features
 
-- [ ] Driver signup endpoint
-- [ ] Driver login endpoint
-- [ ] Role-aware JWT claims (rider and driver)
-- [ ] Driver account status flag (pending, active, blocked)
-- [ ] Basic protected driver endpoint for auth flow validation
-- [ ] Get current user profile endpoint
-- [ ] Update profile endpoint with optimistic-safe updates
-- [ ] Change password endpoint with old-password verification
-- [ ] Soft delete or deactivate account flow
-- [ ] Optional email verification workflow
+- [x] Driver signup endpoint
+- [x] Driver login endpoint
+- [x] Role-aware JWT claims (rider and driver)
+- [x] Driver account status flag (pending, active, blocked)
+- [x] Basic protected driver endpoint for auth flow validation
+- [x] Get current user profile endpoint
+- [x] Update profile endpoint with optimistic-safe updates
+- [x] Change password endpoint with old-password verification
+- [x] Soft delete or deactivate account flow
+- [ ] Optional email verification workflow (deferred; `is_email_verified` defaults to false and is manually managed for now)
 
 ### Technical Tasks
 
-- [ ] Introduce identity role model and role checks in middleware
-- [ ] Extend auth DTOs and use cases for driver credentials
-- [ ] Add migrations for drivers table with auth-focused minimal fields
-- [ ] Add tests for driver signup/login and role-based route access
-- [ ] Add user service use cases and DTOs
-- [ ] Add repository methods for profile updates and status flags
-- [ ] Add migration for account status and audit columns
-- [ ] Add authorization checks for self-access operations
+- [x] Introduce identity role model and role checks in middleware
+- [x] Extend auth DTOs and use cases for driver credentials
+- [x] Add migrations for drivers table with auth-focused minimal fields
+- [x] Add tests for driver signup/login and role-based route access
+- [x] Add user service use cases and DTOs
+- [x] Add repository methods for profile updates and status flags
+- [x] Add migration for account status and audit columns
+- [x] Add authorization checks for self-access operations
 
 ### Exit Criteria
 
-- [ ] Rider and driver can authenticate independently
-- [ ] Role-based route access is enforced by middleware
-- [ ] Profile lifecycle operations fully covered by tests
-- [ ] Account status state transitions are validated
+- [x] Rider and driver can authenticate independently
+- [x] Role-based route access is enforced by middleware
+- [x] Profile lifecycle operations fully covered by tests
+- [x] Account status state transitions are validated
 
 ---
 
@@ -328,6 +328,7 @@ Goal: Complete deferred auth security tasks after overall app delivery milestone
 | 2026-06-20 | 2/3 | Roadmap revised: minimal driver signup/login moved earlier; ride booking core kept ahead of full driver/fleet management using assignment-ready contract. | Copilot |
 | 2026-06-20 | 1/10 | Deferred refresh tokens, auth rate limiting, and brute-force protection to post-completion STP hardening phase. | Copilot |
 | 2026-06-20 | 1 | Completed Phase 1 with strict request validation, unified auth error model, standardized JWT claims (issuer/audience/expiry), and auth test coverage for happy/failure/expired/malformed token paths. | Copilot |
+| 2026-06-29 | 2 | Implemented driver signup/login, role-aware JWT + middleware role checks, protected driver endpoint, user profile lifecycle endpoints (`me`, profile update, change-password, deactivate), repository/model/migration updates, and end-to-end API+DB verification. | Copilot |
 
 ## Risks and Dependencies
 

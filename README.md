@@ -18,7 +18,7 @@ DDD-styled Golang backend boilerplate for a cab booking app with user authentica
 - `application/user`: DTOs, mappers, signup/login use cases
 - `infrastructure`: db, repository implementations, security adapters
 - `interfaces/http`: handlers, middleware, routes
-- `migrations`: SQL migration files
+- `migrations`: legacy local SQL migrations (shared schema is now owned by `go-ride-db-schema`)
 
 ## Setup
 
@@ -40,7 +40,13 @@ docker compose up -d
 go mod tidy
 ```
 
-4. Run API:
+4. Run shared schema migrations:
+
+```bash
+make migrate-up
+```
+
+5. Run API:
 
 ```bash
 go run ./cmd/api
@@ -79,4 +85,4 @@ JWT configuration supports issuer/audience claim validation through `JWT_ISSUER`
 ## Notes
 
 - `docker-compose.yml` provisions PostgreSQL with env-driven credentials.
-- GORM `AutoMigrate` is enabled for bootstrap and SQL migrations are included for versioned migration flow.
+- Schema and migrations are managed by sibling package `go-ride-db-schema`.

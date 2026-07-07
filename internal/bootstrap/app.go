@@ -6,7 +6,6 @@ import (
 	appdriver "go-ride-backend/application/driver"
 	appuser "go-ride-backend/application/user"
 	"go-ride-backend/infrastructure/db"
-	"go-ride-backend/infrastructure/db/models"
 	"go-ride-backend/infrastructure/repository"
 	"go-ride-backend/infrastructure/security"
 	"go-ride-backend/interfaces/http/handlers"
@@ -24,10 +23,6 @@ func Build(cfg *config.Config) (*App, error) {
 	gormDB, err := db.NewGorm(cfg.DB)
 	if err != nil {
 		return nil, fmt.Errorf("init database: %w", err)
-	}
-
-	if err := gormDB.AutoMigrate(&models.UserModel{}, &models.DriverModel{}); err != nil {
-		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
 
 	userRepo := repository.NewUserRepositoryGorm(gormDB)
