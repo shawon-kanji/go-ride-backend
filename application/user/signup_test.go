@@ -15,9 +15,19 @@ type fakeUserRepo struct {
 	byEmail map[string]*domainuser.User
 }
 
-func (r *fakeUserRepo) Create(_ context.Context, user *domainuser.User) error {
+func (r *fakeUserRepo) Create(_ context.Context, input *domainuser.SignupInput) (*domainuser.User, error) {
+	user := &domainuser.User{
+		ID:            uuid.New(),
+		Email:         input.Email,
+		PasswordHash:  input.PasswordHash,
+		FirstName:     input.FirstName,
+		LastName:      input.LastName,
+		AccountStatus: input.AccountStatus,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+	}
 	r.byEmail[user.Email] = user
-	return nil
+	return user, nil
 }
 
 func (r *fakeUserRepo) GetByEmail(_ context.Context, email string) (*domainuser.User, error) {

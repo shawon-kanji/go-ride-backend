@@ -22,22 +22,33 @@ func NewUserRepositoryGorm(db *gorm.DB) *UserRepositoryGorm {
 	return &UserRepositoryGorm{db: db}
 }
 
-func (r *UserRepositoryGorm) Create(ctx context.Context, user *domainuser.User) error {
+func (r *UserRepositoryGorm) Create(ctx context.Context, input *domainuser.SignupInput) (*domainuser.User, error) {
+	now := time.Now().UTC()
+	id := uuid.New()
 	model := &schemamodels.User{
-		ID:            user.ID,
-		Email:         user.Email,
-		PasswordHash:  user.PasswordHash,
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		AccountStatus: user.AccountStatus,
-		DeactivatedAt: user.DeactivatedAt,
-		CreatedAt:     user.CreatedAt,
-		UpdatedAt:     user.UpdatedAt,
+		ID:            id,
+		Email:         input.Email,
+		PasswordHash:  input.PasswordHash,
+		FirstName:     input.FirstName,
+		LastName:      input.LastName,
+		AccountStatus: input.AccountStatus,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 	if err := r.db.WithContext(ctx).Create(model).Error; err != nil {
-		return fmt.Errorf("create user: %w", err)
+		return nil, fmt.Errorf("create user: %w", err)
 	}
-	return nil
+
+	return &domainuser.User{
+		ID:            id,
+		Email:         input.Email,
+		PasswordHash:  input.PasswordHash,
+		FirstName:     input.FirstName,
+		LastName:      input.LastName,
+		AccountStatus: input.AccountStatus,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}, nil
 }
 
 func (r *UserRepositoryGorm) GetByEmail(ctx context.Context, email string) (*domainuser.User, error) {

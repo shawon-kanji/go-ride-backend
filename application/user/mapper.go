@@ -2,25 +2,18 @@ package user
 
 import (
 	"strings"
-	"time"
 
 	domainuser "go-ride-backend/domain/user"
-
-	"github.com/google/uuid"
 )
 
-func NewUserFromSignup(req SignupRequest, hashedPassword string) *domainuser.User {
-	now := time.Now().UTC()
+func NewUserFromSignup(req SignupRequest, hashedPassword string) *domainuser.SignupInput {
 
-	return &domainuser.User{
-		ID:            uuid.New(),
+	return &domainuser.SignupInput{
 		Email:         strings.ToLower(strings.TrimSpace(req.Email)),
 		PasswordHash:  hashedPassword,
 		FirstName:     strings.TrimSpace(req.FirstName),
 		LastName:      strings.TrimSpace(req.LastName),
 		AccountStatus: domainuser.AccountStatusActive,
-		CreatedAt:     now,
-		UpdatedAt:     now,
 	}
 }
 

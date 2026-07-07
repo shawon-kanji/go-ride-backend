@@ -37,10 +37,11 @@ func (uc *SignupUseCase) Execute(ctx context.Context, req SignupRequest) (*Signu
 		return nil, err
 	}
 
-	newUser := NewUserFromSignup(req, hashed)
-	if err := uc.repo.Create(ctx, newUser); err != nil {
+	input := NewUserFromSignup(req, hashed)
+	createdUser, err := uc.repo.Create(ctx, input)
+	if err != nil {
 		return nil, err
 	}
 
-	return &SignupResponse{User: ToUserResponse(newUser)}, nil
+	return &SignupResponse{User: ToUserResponse(createdUser)}, nil
 }
