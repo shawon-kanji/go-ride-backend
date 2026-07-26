@@ -5,6 +5,7 @@ import (
 
 	appdriver "go-ride-backend/application/driver"
 	appuser "go-ride-backend/application/user"
+	appvehicle "go-ride-backend/application/vehicle"
 	"go-ride-backend/infrastructure/db"
 	"go-ride-backend/infrastructure/repository"
 	"go-ride-backend/infrastructure/security"
@@ -27,6 +28,7 @@ func Build(cfg *config.Config) (*App, error) {
 
 	userRepo := repository.NewUserRepositoryGorm(gormDB)
 	driverRepo := repository.NewDriverRepositoryGorm(gormDB)
+	vehicleRepo := repository.NewVehicleRepositoryGorm(gormDB)
 	hasher := security.NewBcryptHasher()
 	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience)
 
@@ -46,8 +48,30 @@ func Build(cfg *config.Config) (*App, error) {
 	)
 	driverSignupUseCase := appdriver.NewSignupUseCase(driverRepo, hasher)
 	driverLoginUseCase := appdriver.NewLoginUseCase(driverRepo, hasher, jwtManager)
-	driverHandler := handlers.NewDriverHandler(driverSignupUseCase, driverLoginUseCase)
+	driverGetProfileUseCase := appdriver.NewGetProfileUseCase(driverRepo)
+	driverUpdateProfileUseCase := appdriver.NewUpdateProfileUseCase(driverRepo)
+	driverHandler := handlers.NewDriverHandler(
+		driverSignupUseCase,
+		driverLoginUseCase,
+		driverGetProfileUseCase,
+		driverUpdateProfileUseCase,
+	)
 
-	router := routes.NewRouter(authHandler, driverHandler, jwtManager)
+	vehicleRegisterUseCase := appvehicle.NewRegisterUseCase(vehicleRepo)
+	vehicleListUseCase := appvehicle.NewListUseCase(vehicleRepo)
+	vehicleGetUseCase := appvehicle.NewGetUseCase(vehicleRepo)
+	vehicleUpdateUseCase := appvehicle.NewUpdateUseCase(vehicleRepo)
+	vehicleActivateUseCase := appvehicle.NewActivateUseCase(vehicleRepo)
+	vehicleDeleteUseCase := appvehicle.NewDeleteUseCase(vehicleRepo)
+	vehicleHandler := handlers.NewVehicleHandler(
+		vehicleRegisterUseCase,
+		vehicleListUseCase,
+		vehicleGetUseCase,
+		vehicleUpdateUseCase,
+		vehicleActivateUseCase,
+		vehicleDeleteUseCase,
+	)
+
+	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, jwtManager)
 	return &App{Router: router}, nil
 }

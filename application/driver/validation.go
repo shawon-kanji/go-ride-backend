@@ -46,6 +46,21 @@ func validateLoginRequest(req LoginRequest) error {
 	return nil
 }
 
+func validateUpdateProfileRequest(req UpdateProfileRequest) error {
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
+
+	if err := validate.Struct(req); err != nil {
+		if verrs, ok := err.(validator.ValidationErrors); ok {
+			first := verrs[0]
+			return ValidationError{Message: formatFieldError(first)}
+		}
+		return ValidationError{Message: "invalid update profile request"}
+	}
+
+	return nil
+}
+
 func formatFieldError(fe validator.FieldError) string {
 	field := strings.ToLower(fe.Field())
 	switch fe.Tag() {

@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.DriverHandler, jwtManager *security.JWTManager) *gin.Engine {
+func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.DriverHandler, vehicleHandler *handlers.VehicleHandler, jwtManager *security.JWTManager) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(middleware.Recovery())
@@ -45,6 +45,18 @@ func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.Driver
 				"driver_role":  c.GetString("user_role"),
 			})
 		})
+		driverProtected.GET("/profile", driverHandler.Me)
+		driverProtected.PATCH("/profile", driverHandler.UpdateProfile)
+
+		vehicles := driverProtected.Group("/vehicles")
+		{
+			vehicles.POST("", vehicleHandler.Register)
+			vehicles.GET("", vehicleHandler.List)
+			vehicles.GET("/:id", vehicleHandler.Get)
+			vehicles.PATCH("/:id", vehicleHandler.Update)
+			vehicles.POST("/:id/activate", vehicleHandler.Activate)
+			vehicles.DELETE("/:id", vehicleHandler.Delete)
+		}
 	}
 
 	return router

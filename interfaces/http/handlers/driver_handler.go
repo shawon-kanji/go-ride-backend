@@ -10,12 +10,24 @@ import (
 )
 
 type DriverHandler struct {
-	signupUseCase *appdriver.SignupUseCase
-	loginUseCase  *appdriver.LoginUseCase
+	signupUseCase        *appdriver.SignupUseCase
+	loginUseCase         *appdriver.LoginUseCase
+	getProfileUseCase    *appdriver.GetProfileUseCase
+	updateProfileUseCase *appdriver.UpdateProfileUseCase
 }
 
-func NewDriverHandler(signupUseCase *appdriver.SignupUseCase, loginUseCase *appdriver.LoginUseCase) *DriverHandler {
-	return &DriverHandler{signupUseCase: signupUseCase, loginUseCase: loginUseCase}
+func NewDriverHandler(
+	signupUseCase *appdriver.SignupUseCase,
+	loginUseCase *appdriver.LoginUseCase,
+	getProfileUseCase *appdriver.GetProfileUseCase,
+	updateProfileUseCase *appdriver.UpdateProfileUseCase,
+) *DriverHandler {
+	return &DriverHandler{
+		signupUseCase:        signupUseCase,
+		loginUseCase:         loginUseCase,
+		getProfileUseCase:    getProfileUseCase,
+		updateProfileUseCase: updateProfileUseCase,
+	}
 }
 
 func (h *DriverHandler) Signup(c *gin.Context) {
@@ -48,6 +60,34 @@ func (h *DriverHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *DriverHandler) Me(c *gin.Context) {
+	driverID := c.GetString("user_id")
+	response, err := h.getProfileUseCase.Execute(c.Request.Context(), driverID)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"driver": response})
+}
+
+func (h *DriverHandler) UpdateProfile(c *gin.Context) {
+	var req appdriver.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
+		return
+	}
+
+	driverID := c.GetString("user_id")
+	response, err := h.updateProfileUseCase.Execute(c.Request.Context(), driverID, req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"driver": response})
 }
 
 func (h *DriverHandler) handleError(c *gin.Context, err error) {

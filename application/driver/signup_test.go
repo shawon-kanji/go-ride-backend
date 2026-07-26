@@ -26,6 +26,26 @@ func (r *fakeDriverRepo) GetByEmail(_ context.Context, email string) (*domaindri
 	return nil, domaindriver.ErrDriverNotFound
 }
 
+func (r *fakeDriverRepo) GetByID(_ context.Context, id uuid.UUID) (*domaindriver.Driver, error) {
+	for _, d := range r.byEmail {
+		if d.ID == id {
+			return d, nil
+		}
+	}
+	return nil, domaindriver.ErrDriverNotFound
+}
+
+func (r *fakeDriverRepo) UpdateProfile(_ context.Context, id uuid.UUID, firstName string, lastName string) (*domaindriver.Driver, error) {
+	for _, d := range r.byEmail {
+		if d.ID == id {
+			d.FirstName = firstName
+			d.LastName = lastName
+			return d, nil
+		}
+	}
+	return nil, domaindriver.ErrDriverNotFound
+}
+
 type fakeHasher struct{}
 
 func (h *fakeHasher) Hash(password string) (string, error) {
