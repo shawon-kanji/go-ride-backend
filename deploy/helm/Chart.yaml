@@ -1,0 +1,6 @@
+apiVersion: v2
+name: backend-api
+description: go-ride user/driver/vehicle identity and auth API
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

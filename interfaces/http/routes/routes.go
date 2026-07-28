@@ -15,6 +15,10 @@ func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.Driver
 	router.Use(gin.Logger())
 	router.Use(middleware.Recovery())
 
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	v1 := router.Group("/api/v1")
 	{
 		auth := v1.Group("/auth")

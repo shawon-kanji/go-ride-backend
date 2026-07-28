@@ -1,9 +1,12 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/shawon-kanji/go-ride-utils/awssecrets"
 )
 
 type Config struct {
@@ -32,7 +35,11 @@ type JWTConfig struct {
 	Audience      string
 }
 
-func Load() (*Config, error) {
+// Load reads configuration from the environment. In staging/production,
+// DB_CREDENTIALS_SECRET_NAME and/or JWT_SECRET_NAME select AWS Secrets
+// Manager as the source for those values instead (fetched here via IRSA);
+// when unset, the plain env vars below are used exactly as before.
+func Load(ctx context.Context) (*Config, error) {
 	dbPort, err := getIntEnv("DB_PORT", 5432)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DB_PORT: %w", err)
@@ -43,6 +50,32 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid JWT_EXPIRY_MINUTES: %w", err)
 	}
 
+	dbUser := getEnv("DB_USER", "postgres")
+	dbPassword := getEnv("DB_PASSWORD", "postgres")
+	if secretName := getEnv("DB_CREDENTIALS_SECRET_NAME", ""); secretName != "" {
+		values, err := awssecrets.FetchJSON(ctx, secretName)
+		if err != nil {
+			return nil, fmt.Errorf("fetch db credentials secret: %w", err)
+		}
+		if v, ok := values["DB_USER"]; ok {
+			dbUser = v
+		}
+		if v, ok := values["DB_PASSWORD"]; ok {
+			dbPassword = v
+		}
+	}
+
+	jwtSecret := getEnv("JWT_SECRET", "change-me-in-production")
+	if secretName := getEnv("JWT_SECRET_NAME", ""); secretName != "" {
+		values, err := awssecrets.FetchJSON(ctx, secretName)
+		if err != nil {
+			return nil, fmt.Errorf("fetch jwt secret: %w", err)
+		}
+		if v, ok := values["JWT_SECRET"]; ok {
+			jwtSecret = v
+		}
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
 			Port: getEnv("APP_PORT", "8080"),
@@ -50,13 +83,13 @@ func Load() (*Config, error) {
 		DB: DBConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     dbPort,
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
+			User:     dbUser,
+			Password: dbPassword,
 			Name:     getEnv("DB_NAME", "go_ride"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret:        getEnv("JWT_SECRET", "change-me-in-production"),
+			Secret:        jwtSecret,
 			ExpiryMinutes: jwtExpiry,
 			Issuer:        getEnv("JWT_ISSUER", "go-ride-backend"),
 			Audience:      getEnv("JWT_AUDIENCE", "go-ride-clients"),

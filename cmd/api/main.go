@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"go-ride-backend/internal/bootstrap"
@@ -8,7 +9,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load()
+	cfg, err := config.Load(context.Background())
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}

@@ -1,0 +1,52 @@
+image:
+  repository: go-ride/backend-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  enabled: true
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  path: /api
+  host: ""
+  className: ""
+  group: ""
+  annotations: {}
+
+probes:
+  enabled: true
+  path: /healthz
+  port: 8080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+env:
+  plain:
+    DB_HOST: localhost
+    DB_PORT: "5432"
+    DB_NAME: go_ride
+    DB_SSLMODE: disable
+    JWT_ISSUER: go-ride-backend
+    JWT_AUDIENCE: go-ride-clients
+  secretRefs: []
+
+secretsManager:
+  enabled: false
+  dbCredentialsSecretName: ""
+  jwtSecretName: ""

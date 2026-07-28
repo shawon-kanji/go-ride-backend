@@ -1,0 +1,35 @@
+replicaCount: 3
+
+ingress:
+  enabled: true
+  className: alb
+  group: go-ride-production
+  path: /api
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+serviceAccount:
+  name: go-ride-app
+
+env:
+  plain:
+    DB_PORT: "5432"
+    DB_NAME: go_ride
+    DB_SSLMODE: require
+    JWT_ISSUER: go-ride-backend
+    JWT_AUDIENCE: go-ride-clients
+  secretRefs: []
+
+secretsManager:
+  enabled: true
+  dbCredentialsSecretName: go-ride/production/db-credentials
+  jwtSecretName: go-ride/production/jwt

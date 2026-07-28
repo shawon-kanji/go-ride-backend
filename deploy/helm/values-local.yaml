@@ -1,0 +1,15 @@
+ingress:
+  enabled: true
+  className: nginx
+  path: /api
+
+env:
+  plain:
+    DB_HOST: postgres.go-ride-local.svc.cluster.local
+    DB_PORT: "5432"
+    DB_NAME: go_ride
+    DB_SSLMODE: disable
+    JWT_ISSUER: go-ride-backend
+    JWT_AUDIENCE: go-ride-clients
+  secretRefs:
+    - go-ride-local-secrets
