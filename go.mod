@@ -8,15 +8,11 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/shawon-kanji/go-ride-db-schema v0.3.4
-	github.com/shawon-kanji/go-ride-utils v0.1.0
+	github.com/shawon-kanji/go-ride-utils v0.1.1
 	golang.org/x/crypto v0.53.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
 )
-
-// Local-only: points at the unpublished go-ride-utils/awssecrets package
-// until it's tagged and pushed. Remove once a real release exists.
-replace github.com/shawon-kanji/go-ride-utils => ../go-ride-utils
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.43.0 // indirect
