@@ -7,7 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
-	github.com/shawon-kanji/go-ride-db-schema v0.3.4
+	github.com/shawon-kanji/go-ride-db-schema v0.3.6
 	github.com/shawon-kanji/go-ride-utils v0.1.1
 	golang.org/x/crypto v0.53.0
 	gorm.io/driver/postgres v1.6.0
