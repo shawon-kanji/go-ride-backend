@@ -12,7 +12,7 @@ import (
 
 func TestAuthRequiredValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients")
+	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients", "go-ride-drivers")
 	token, err := jwtManager.Generate("user-id", "user@example.com", "rider")
 	if err != nil {
 		t.Fatalf("generate token: %v", err)
@@ -36,7 +36,7 @@ func TestAuthRequiredValidToken(t *testing.T) {
 
 func TestAuthRequiredExpiredToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	jwtManager := security.NewJWTManager("secret", -1, "go-ride-backend", "go-ride-clients")
+	jwtManager := security.NewJWTManager("secret", -1, "go-ride-backend", "go-ride-clients", "go-ride-drivers")
 	token, err := jwtManager.Generate("user-id", "user@example.com", "rider")
 	if err != nil {
 		t.Fatalf("generate token: %v", err)
@@ -60,7 +60,7 @@ func TestAuthRequiredExpiredToken(t *testing.T) {
 
 func TestAuthRequiredMalformedToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients")
+	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients", "go-ride-drivers")
 
 	r := gin.New()
 	r.Use(AuthRequired(jwtManager))
@@ -78,9 +78,33 @@ func TestAuthRequiredMalformedToken(t *testing.T) {
 	}
 }
 
+func TestAuthRequiredRoleDriverToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients", "go-ride-drivers")
+	token, err := jwtManager.Generate("driver-id", "driver@example.com", "driver")
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
+	}
+
+	r := gin.New()
+	r.Use(AuthRequiredRole(jwtManager, "driver"))
+	r.GET("/protected", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
 func TestAuthRequiredRoleForbidden(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients")
+	jwtManager := security.NewJWTManager("secret", 60, "go-ride-backend", "go-ride-clients", "go-ride-drivers")
 	token, err := jwtManager.Generate("user-id", "user@example.com", "rider")
 	if err != nil {
 		t.Fatalf("generate token: %v", err)

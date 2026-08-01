@@ -29,10 +29,11 @@ type DBConfig struct {
 }
 
 type JWTConfig struct {
-	Secret        string
-	ExpiryMinutes int
-	Issuer        string
-	Audience      string
+	Secret         string
+	ExpiryMinutes  int
+	Issuer         string
+	Audience       string
+	DriverAudience string
 }
 
 // Load reads configuration from the environment. In staging/production,
@@ -89,10 +90,11 @@ func Load(ctx context.Context) (*Config, error) {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
-			Secret:        jwtSecret,
-			ExpiryMinutes: jwtExpiry,
-			Issuer:        getEnv("JWT_ISSUER", "go-ride-backend"),
-			Audience:      getEnv("JWT_AUDIENCE", "go-ride-clients"),
+			Secret:         jwtSecret,
+			ExpiryMinutes:  jwtExpiry,
+			Issuer:         getEnv("JWT_ISSUER", "go-ride-backend"),
+			Audience:       getEnv("JWT_AUDIENCE", "go-ride-clients"),
+			DriverAudience: getEnv("JWT_DRIVER_AUDIENCE", "go-ride-drivers"),
 		},
 	}
 

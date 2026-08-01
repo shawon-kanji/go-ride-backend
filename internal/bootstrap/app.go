@@ -30,7 +30,7 @@ func Build(cfg *config.Config) (*App, error) {
 	driverRepo := repository.NewDriverRepositoryGorm(gormDB)
 	vehicleRepo := repository.NewVehicleRepositoryGorm(gormDB)
 	hasher := security.NewBcryptHasher()
-	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience)
+	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience, cfg.JWT.DriverAudience)
 
 	signupUseCase := appuser.NewSignupUseCase(userRepo, hasher)
 	loginUseCase := appuser.NewLoginUseCase(userRepo, hasher, jwtManager)
