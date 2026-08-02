@@ -50,7 +50,7 @@ func Build(cfg *config.Config) (*App, error) {
 	driverLoginUseCase := appdriver.NewLoginUseCase(driverRepo, hasher, jwtManager)
 	driverGetProfileUseCase := appdriver.NewGetProfileUseCase(driverRepo)
 	driverUpdateProfileUseCase := appdriver.NewUpdateProfileUseCase(driverRepo)
-	driverUpdateOnlineStatusUseCase := appdriver.NewUpdateOnlineStatusUseCase(driverRepo)
+	driverUpdateOnlineStatusUseCase := appdriver.NewUpdateOnlineStatusUseCase(driverRepo, vehicleRepo)
 	driverHandler := handlers.NewDriverHandler(
 		driverSignupUseCase,
 		driverLoginUseCase,

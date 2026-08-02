@@ -56,6 +56,8 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusForbidden, Code: "VEHICLE_FORBIDDEN", Message: err.Error()}
 	case errors.Is(err, domainvehicle.ErrVehicleNotFound):
 		return HTTPError{Status: http.StatusNotFound, Code: "VEHICLE_NOT_FOUND", Message: err.Error()}
+	case errors.Is(err, domainvehicle.ErrNoActiveVehicle):
+		return HTTPError{Status: http.StatusForbidden, Code: "NO_ACTIVE_VEHICLE", Message: err.Error()}
 	default:
 		return HTTPError{Status: http.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: "internal server error"}
 	}

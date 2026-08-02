@@ -263,6 +263,7 @@ Goal: Reduce security risk and satisfy baseline compliance requirements.
 - [ ] Security headers middleware
 - [ ] Threat model and abuse-case checklist
 - [ ] Dependency vulnerability scanning in CI
+- [ ] Implement full vehicle and driver KYC with driver lincense upload , self image , govt id , car registration documents , etc
 
 ### Exit Criteria
 
