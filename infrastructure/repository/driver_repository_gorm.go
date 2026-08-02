@@ -31,6 +31,7 @@ func (r *DriverRepositoryGorm) Create(ctx context.Context, driver *domaindriver.
 		LastName:        driver.LastName,
 		AccountStatus:   driver.AccountStatus,
 		IsEmailVerified: driver.IsEmailVerified,
+		IsOnline:        driver.IsOnline,
 		CreatedAt:       driver.CreatedAt,
 		UpdatedAt:       driver.UpdatedAt,
 	}
@@ -56,6 +57,7 @@ func (r *DriverRepositoryGorm) GetByEmail(ctx context.Context, email string) (*d
 		LastName:        model.LastName,
 		AccountStatus:   model.AccountStatus,
 		IsEmailVerified: model.IsEmailVerified,
+		IsOnline:        model.IsOnline,
 		CreatedAt:       model.CreatedAt,
 		UpdatedAt:       model.UpdatedAt,
 	}, nil
@@ -77,6 +79,7 @@ func (r *DriverRepositoryGorm) GetByID(ctx context.Context, id uuid.UUID) (*doma
 		LastName:        model.LastName,
 		AccountStatus:   model.AccountStatus,
 		IsEmailVerified: model.IsEmailVerified,
+		IsOnline:        model.IsOnline,
 		CreatedAt:       model.CreatedAt,
 		UpdatedAt:       model.UpdatedAt,
 	}, nil
@@ -92,6 +95,23 @@ func (r *DriverRepositoryGorm) UpdateProfile(ctx context.Context, id uuid.UUID, 
 	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		return nil, fmt.Errorf("update driver profile: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, domaindriver.ErrDriverNotFound
+	}
+
+	return r.GetByID(ctx, id)
+}
+
+func (r *DriverRepositoryGorm) UpdateOnlineStatus(ctx context.Context, id uuid.UUID, isOnline bool) (*domaindriver.Driver, error) {
+	updates := map[string]interface{}{
+		"is_online":  isOnline,
+		"updated_at": time.Now().UTC(),
+	}
+
+	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return nil, fmt.Errorf("update driver online status: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return nil, domaindriver.ErrDriverNotFound

@@ -12,4 +12,5 @@ type Repository interface {
 	GetByEmail(ctx context.Context, email string) (*Driver, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Driver, error)
 	UpdateProfile(ctx context.Context, id uuid.UUID, firstName string, lastName string) (*Driver, error)
+	UpdateOnlineStatus(ctx context.Context, id uuid.UUID, isOnline bool) (*Driver, error)
 }

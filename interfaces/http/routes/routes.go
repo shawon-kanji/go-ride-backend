@@ -51,6 +51,7 @@ func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.Driver
 		})
 		driverProtected.GET("/profile", driverHandler.Me)
 		driverProtected.PATCH("/profile", driverHandler.UpdateProfile)
+		driverProtected.PATCH("/online", driverHandler.UpdateOnlineStatus)
 
 		vehicles := driverProtected.Group("/vehicles")
 		{

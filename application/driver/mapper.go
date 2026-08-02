@@ -20,6 +20,7 @@ func NewDriverFromSignup(req SignupRequest, hashedPassword string) *domaindriver
 		LastName:        strings.TrimSpace(req.LastName),
 		AccountStatus:   domaindriver.AccountStatusPending,
 		IsEmailVerified: false,
+		IsOnline:        false,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
@@ -33,5 +34,6 @@ func ToDriverResponse(d *domaindriver.Driver) DriverResponse {
 		LastName:        d.LastName,
 		AccountStatus:   d.AccountStatus,
 		IsEmailVerified: d.IsEmailVerified,
+		IsOnline:        d.IsOnline,
 	}
 }

@@ -21,6 +21,7 @@ type Driver struct {
 	LastName        string
 	AccountStatus   string
 	IsEmailVerified bool
+	IsOnline        bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
