@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/shawon-kanji/go-ride-utils/awssecrets"
 )
 
 type Config struct {
-	Server ServerConfig
-	DB     DBConfig
-	JWT    JWTConfig
+	Server  ServerConfig
+	DB      DBConfig
+	JWT     JWTConfig
+	Storage StorageConfig
 }
 
 type ServerConfig struct {
@@ -36,6 +38,21 @@ type JWTConfig struct {
 	DriverAudience string
 }
 
+// StorageConfig configures the S3-API object storage client. Endpoint empty
+// targets real AWS S3 (credentials from the pod's IAM role via IRSA,
+// virtual-hosted-style addressing); Endpoint set targets a local/self-hosted
+// S3-compatible store such as AIStor (static AccessKeyID/SecretAccessKey,
+// path-style addressing).
+type StorageConfig struct {
+	Bucket          string
+	Region          string
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
+	UsePathStyle    bool
+	PresignExpiry   time.Duration
+}
+
 // Load reads configuration from the environment. In staging/production,
 // DB_CREDENTIALS_SECRET_NAME and/or JWT_SECRET_NAME select AWS Secrets
 // Manager as the source for those values instead (fetched here via IRSA);
@@ -49,6 +66,16 @@ func Load(ctx context.Context) (*Config, error) {
 	jwtExpiry, err := getIntEnv("JWT_EXPIRY_MINUTES", 60)
 	if err != nil {
 		return nil, fmt.Errorf("invalid JWT_EXPIRY_MINUTES: %w", err)
+	}
+
+	storagePresignMinutes, err := getIntEnv("STORAGE_PRESIGN_EXPIRY_MINUTES", 15)
+	if err != nil {
+		return nil, fmt.Errorf("invalid STORAGE_PRESIGN_EXPIRY_MINUTES: %w", err)
+	}
+
+	storageUsePathStyle, err := getBoolEnv("STORAGE_USE_PATH_STYLE", false)
+	if err != nil {
+		return nil, fmt.Errorf("invalid STORAGE_USE_PATH_STYLE: %w", err)
 	}
 
 	dbUser := getEnv("DB_USER", "postgres")
@@ -96,6 +123,15 @@ func Load(ctx context.Context) (*Config, error) {
 			Audience:       getEnv("JWT_AUDIENCE", "go-ride-clients"),
 			DriverAudience: getEnv("JWT_DRIVER_AUDIENCE", "go-ride-drivers"),
 		},
+		Storage: StorageConfig{
+			Bucket:          getEnv("STORAGE_BUCKET", "go-ride-driver-documents"),
+			Region:          getEnv("STORAGE_REGION", "us-east-1"),
+			Endpoint:        getEnv("STORAGE_ENDPOINT", ""),
+			AccessKeyID:     getEnv("STORAGE_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("STORAGE_SECRET_ACCESS_KEY", ""),
+			UsePathStyle:    storageUsePathStyle,
+			PresignExpiry:   time.Duration(storagePresignMinutes) * time.Minute,
+		},
 	}
 
 	return cfg, nil
@@ -114,4 +150,12 @@ func getIntEnv(key string, fallback int) (int, error) {
 		return fallback, nil
 	}
 	return strconv.Atoi(value)
+}
+
+func getBoolEnv(key string, fallback bool) (bool, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback, nil
+	}
+	return strconv.ParseBool(value)
 }

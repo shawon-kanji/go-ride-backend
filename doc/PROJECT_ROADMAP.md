@@ -286,6 +286,13 @@ Goal: Reduce security risk and satisfy baseline compliance requirements.
 - [ ] Security checklist completed with documented decisions
 - [ ] No critical vulnerabilities in release candidate
 
+### Driver KYC & Document Verification
+
+- [ ] Document upload (selfie, govt ID, driving license, vehicle registration) with human backoffice approval gating driver online status and vehicle activation
+- [ ] AI pre-screening of document authenticity — future enhancement only, not a final verifier; out of scope for now
+
+Full implementation plan: [`doc/DRIVER_KYC_PLAN.md`](DRIVER_KYC_PLAN.md)
+
 ---
 
 ## Phase 9: Testing, QA, and Release
@@ -372,6 +379,7 @@ Reference notes for implementing the "Optional refresh token model and rotation 
 | 2026-06-29 | 2 | Implemented driver signup/login, role-aware JWT + middleware role checks, protected driver endpoint, user profile lifecycle endpoints (`me`, profile update, change-password, deactivate), repository/model/migration updates, and end-to-end API+DB verification. | Copilot |
 | 2026-08-02 | 10 | Added refresh token design notes (flow, rationale, rotation/storage practices) to guide future implementation of the deferred refresh-token feature. | Claude |
 | 2026-08-02 | 2-9 | Full audit of actual code vs. roadmap claims across `go-ride-backend`, `go-ride-kafka-consumers`, and `go-ride-db-schema`. Discovered ride booking, dispatch, fare estimation, and real-time notifications (Phases 3, 5, 6) are already substantially built, but as standalone services in sibling repos, not integrated into `go-ride-backend`. Updated phase statuses, checklists, and added an Identified Gaps section accordingly. | Claude |
+| 2026-08-08 | 8 | Added Driver KYC & Document Verification as a bulleted feature under Phase 8, with the detailed implementation plan (document types, schema, storage, review flow, and the out-of-scope AI pre-screening insertion point) moved to `doc/DRIVER_KYC_PLAN.md` to keep the roadmap itself at feature-tracking altitude. | Claude |
 
 ## Identified Gaps
 
@@ -382,7 +390,7 @@ Gaps found during the 2026-08-02 audit that aren't fully captured by the phase c
 3. **`go-ride-backend` itself has no CI** (no `.github/workflows`), unlike `go-ride-db-schema` which already has one.
 4. **Payments are not real payments** — the only implemented flow is marking cash as collected at trip end (`payment_status`/`payment_collected_at`). No payment gateway integration, no transaction/invoice history, no failed-payment recovery.
 5. **Surge pricing is a hardcoded `1.0` multiplier**, not a configurable rules engine, despite Phase 5 listing it as a feature.
-6. **No KYC / driver document verification workflow anywhere** (license, selfie, government ID, vehicle registration upload) — zero hits across all three repos. Driver "verification" today is just a manually-set `account_status` enum.
+6. **No KYC / driver document verification workflow anywhere** (license, selfie, government ID, vehicle registration upload) — zero hits across all three repos. Driver "verification" today is just a manually-set `account_status` enum. Full plan: [`doc/DRIVER_KYC_PLAN.md`](DRIVER_KYC_PLAN.md).
 7. **No push or email notifications** — only websocket delivery exists, so users not actively connected miss ride events.
 8. **No structured logging, metrics, or distributed tracing**, despite a `correlation_id` field already being threaded through events/DB rows for this exact purpose — the plumbing for correlation exists but nothing consumes it yet.
 9. **No email verification workflow** — `is_email_verified` column exists but nothing sets it to `true`.

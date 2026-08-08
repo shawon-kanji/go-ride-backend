@@ -21,5 +21,26 @@ services:
       timeout: 5s
       retries: 10
 
+  aistor:
+    image: quay.io/minio/aistor/minio:latest
+    container_name: go-ride-aistor
+    restart: unless-stopped
+    command: minio server /data --console-address ":9001" --license /license/minio.license
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_ACCESS_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - aistor_data:/data
+      - ${AISTOR_LICENSE_PATH:-./aistor.license}:/license/minio.license:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  aistor_data:
