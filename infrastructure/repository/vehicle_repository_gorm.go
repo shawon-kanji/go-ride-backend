@@ -68,6 +68,19 @@ func (r *VehicleRepositoryGorm) GetByID(ctx context.Context, id uuid.UUID) (*dom
 	return toDomainVehicle(&model), nil
 }
 
+// IsOwnedByDriver satisfies application/kyc's narrow VehicleOwnerChecker
+// port, so that package can validate a vehicle_id on a KYC upload without
+// importing domain/vehicle's full Repository interface.
+func (r *VehicleRepositoryGorm) IsOwnedByDriver(ctx context.Context, vehicleID uuid.UUID, driverID uuid.UUID) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&schemamodels.Vehicle{}).
+		Where("id = ? AND driver_id = ?", vehicleID, driverID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("check vehicle ownership: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *VehicleRepositoryGorm) GetByPlateNumber(ctx context.Context, plate string) (*domainvehicle.Vehicle, error) {
 	var model schemamodels.Vehicle
 	if err := r.db.WithContext(ctx).Where("plate_number = ?", plate).First(&model).Error; err != nil {

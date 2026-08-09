@@ -9,12 +9,13 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load(context.Background())
+	ctx := context.Background()
+	cfg, err := config.Load(ctx)
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
 
-	app, err := bootstrap.Build(cfg)
+	app, err := bootstrap.Build(ctx, cfg)
 	if err != nil {
 		log.Fatalf("build app: %v", err)
 	}

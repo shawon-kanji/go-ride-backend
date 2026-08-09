@@ -10,7 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.DriverHandler, vehicleHandler *handlers.VehicleHandler, jwtManager *security.JWTManager) *gin.Engine {
+// NewRouter builds the full API router. Route wiring for each domain lives
+// in its own file in this package (auth_routes.go, driver_routes.go,
+// vehicle_routes.go, kyc_routes.go); this function just composes them.
+func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.DriverHandler, vehicleHandler *handlers.VehicleHandler, kycHandler *handlers.KycHandler, jwtManager *security.JWTManager) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(middleware.Recovery())
@@ -20,49 +23,10 @@ func NewRouter(authHandler *handlers.AuthHandler, driverHandler *handlers.Driver
 	})
 
 	v1 := router.Group("/api/v1")
-	{
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/signup", authHandler.Signup)
-			auth.POST("/login", authHandler.Login)
-		}
-
-		driverAuth := v1.Group("/driver/auth")
-		{
-			driverAuth.POST("/signup", driverHandler.Signup)
-			driverAuth.POST("/login", driverHandler.Login)
-		}
-
-		protected := v1.Group("")
-		protected.Use(middleware.AuthRequired(jwtManager))
-		protected.GET("/me", authHandler.Me)
-		protected.PATCH("/profile", authHandler.UpdateProfile)
-		protected.POST("/change-password", authHandler.ChangePassword)
-		protected.POST("/deactivate", authHandler.DeactivateAccount)
-
-		driverProtected := v1.Group("/driver")
-		driverProtected.Use(middleware.AuthRequiredRole(jwtManager, "driver"))
-		driverProtected.GET("/me", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"driver_id":    c.GetString("user_id"),
-				"driver_email": c.GetString("user_email"),
-				"driver_role":  c.GetString("user_role"),
-			})
-		})
-		driverProtected.GET("/profile", driverHandler.Me)
-		driverProtected.PATCH("/profile", driverHandler.UpdateProfile)
-		driverProtected.PATCH("/online", driverHandler.UpdateOnlineStatus)
-
-		vehicles := driverProtected.Group("/vehicles")
-		{
-			vehicles.POST("", vehicleHandler.Register)
-			vehicles.GET("", vehicleHandler.List)
-			vehicles.GET("/:id", vehicleHandler.Get)
-			vehicles.PATCH("/:id", vehicleHandler.Update)
-			vehicles.POST("/:id/activate", vehicleHandler.Activate)
-			vehicles.DELETE("/:id", vehicleHandler.Delete)
-		}
-	}
+	registerAuthRoutes(v1, authHandler, jwtManager)
+	driverProtected := registerDriverRoutes(v1, driverHandler, jwtManager)
+	registerVehicleRoutes(driverProtected, vehicleHandler)
+	registerKycRoutes(driverProtected, kycHandler)
 
 	return router
 }

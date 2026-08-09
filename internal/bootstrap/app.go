@@ -1,14 +1,17 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
 
 	appdriver "go-ride-backend/application/driver"
+	appkyc "go-ride-backend/application/kyc"
 	appuser "go-ride-backend/application/user"
 	appvehicle "go-ride-backend/application/vehicle"
 	"go-ride-backend/infrastructure/db"
 	"go-ride-backend/infrastructure/repository"
 	"go-ride-backend/infrastructure/security"
+	"go-ride-backend/infrastructure/storage"
 	"go-ride-backend/interfaces/http/handlers"
 	"go-ride-backend/interfaces/http/routes"
 	"go-ride-backend/internal/config"
@@ -20,7 +23,7 @@ type App struct {
 	Router *gin.Engine
 }
 
-func Build(cfg *config.Config) (*App, error) {
+func Build(ctx context.Context, cfg *config.Config) (*App, error) {
 	gormDB, err := db.NewGorm(cfg.DB)
 	if err != nil {
 		return nil, fmt.Errorf("init database: %w", err)
@@ -29,8 +32,14 @@ func Build(cfg *config.Config) (*App, error) {
 	userRepo := repository.NewUserRepositoryGorm(gormDB)
 	driverRepo := repository.NewDriverRepositoryGorm(gormDB)
 	vehicleRepo := repository.NewVehicleRepositoryGorm(gormDB)
+	kycRepo := repository.NewKycRepositoryGorm(gormDB)
 	hasher := security.NewBcryptHasher()
 	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience, cfg.JWT.DriverAudience)
+
+	s3Storage, err := storage.NewS3Storage(ctx, cfg.Storage)
+	if err != nil {
+		return nil, fmt.Errorf("init object storage: %w", err)
+	}
 
 	signupUseCase := appuser.NewSignupUseCase(userRepo, hasher)
 	loginUseCase := appuser.NewLoginUseCase(userRepo, hasher, jwtManager)
@@ -50,7 +59,7 @@ func Build(cfg *config.Config) (*App, error) {
 	driverLoginUseCase := appdriver.NewLoginUseCase(driverRepo, hasher, jwtManager)
 	driverGetProfileUseCase := appdriver.NewGetProfileUseCase(driverRepo)
 	driverUpdateProfileUseCase := appdriver.NewUpdateProfileUseCase(driverRepo)
-	driverUpdateOnlineStatusUseCase := appdriver.NewUpdateOnlineStatusUseCase(driverRepo, vehicleRepo)
+	driverUpdateOnlineStatusUseCase := appdriver.NewUpdateOnlineStatusUseCase(driverRepo, vehicleRepo, kycRepo)
 	driverHandler := handlers.NewDriverHandler(
 		driverSignupUseCase,
 		driverLoginUseCase,
@@ -63,7 +72,7 @@ func Build(cfg *config.Config) (*App, error) {
 	vehicleListUseCase := appvehicle.NewListUseCase(vehicleRepo)
 	vehicleGetUseCase := appvehicle.NewGetUseCase(vehicleRepo)
 	vehicleUpdateUseCase := appvehicle.NewUpdateUseCase(vehicleRepo)
-	vehicleActivateUseCase := appvehicle.NewActivateUseCase(vehicleRepo)
+	vehicleActivateUseCase := appvehicle.NewActivateUseCase(vehicleRepo, driverRepo, kycRepo)
 	vehicleDeleteUseCase := appvehicle.NewDeleteUseCase(vehicleRepo)
 	vehicleHandler := handlers.NewVehicleHandler(
 		vehicleRegisterUseCase,
@@ -74,6 +83,15 @@ func Build(cfg *config.Config) (*App, error) {
 		vehicleDeleteUseCase,
 	)
 
-	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, jwtManager)
+	kycRequestUploadURLUseCase := appkyc.NewRequestUploadURLUseCase(s3Storage)
+	kycConfirmUploadUseCase := appkyc.NewConfirmUploadUseCase(kycRepo, s3Storage, driverRepo, vehicleRepo)
+	kycGetStatusUseCase := appkyc.NewGetStatusUseCase(kycRepo, driverRepo)
+	kycHandler := handlers.NewKycHandler(
+		kycRequestUploadURLUseCase,
+		kycConfirmUploadUseCase,
+		kycGetStatusUseCase,
+	)
+
+	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, kycHandler, jwtManager)
 	return &App{Router: router}, nil
 }

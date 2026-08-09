@@ -12,6 +12,13 @@ const (
 	AccountStatusBlocked = "blocked"
 )
 
+const (
+	KycStatusNotStarted = "not_started"
+	KycStatusInReview   = "in_review"
+	KycStatusApproved   = "approved"
+	KycStatusRejected   = "rejected"
+)
+
 // Driver is the core driver identity entity.
 type Driver struct {
 	ID              uuid.UUID
@@ -22,6 +29,7 @@ type Driver struct {
 	AccountStatus   string
 	IsEmailVerified bool
 	IsOnline        bool
+	KycStatus       string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

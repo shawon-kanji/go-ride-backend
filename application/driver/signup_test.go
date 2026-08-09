@@ -56,6 +56,16 @@ func (r *fakeDriverRepo) UpdateOnlineStatus(_ context.Context, id uuid.UUID, isO
 	return nil, domaindriver.ErrDriverNotFound
 }
 
+func (r *fakeDriverRepo) UpdateKycStatus(_ context.Context, id uuid.UUID, kycStatus string) (*domaindriver.Driver, error) {
+	for _, d := range r.byEmail {
+		if d.ID == id {
+			d.KycStatus = kycStatus
+			return d, nil
+		}
+	}
+	return nil, domaindriver.ErrDriverNotFound
+}
+
 type fakeHasher struct{}
 
 func (h *fakeHasher) Hash(password string) (string, error) {

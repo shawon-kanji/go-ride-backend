@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	appdriver "go-ride-backend/application/driver"
+	appkyc "go-ride-backend/application/kyc"
 	appuser "go-ride-backend/application/user"
 	appvehicle "go-ride-backend/application/vehicle"
 	domaindriver "go-ride-backend/domain/driver"
+	domainkyc "go-ride-backend/domain/kyc"
 	domainuser "go-ride-backend/domain/user"
 	domainvehicle "go-ride-backend/domain/vehicle"
 )
@@ -26,6 +28,7 @@ func Map(err error) HTTPError {
 	var driverValidationErr appdriver.ValidationError
 	var validationErr appuser.ValidationError
 	var vehicleValidationErr appvehicle.ValidationError
+	var kycValidationErr appkyc.ValidationError
 
 	switch {
 	case errors.As(err, &driverValidationErr):
@@ -34,6 +37,8 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: validationErr.Message}
 	case errors.As(err, &vehicleValidationErr):
 		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: vehicleValidationErr.Message}
+	case errors.As(err, &kycValidationErr):
+		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: kycValidationErr.Message}
 	case errors.Is(err, domaindriver.ErrEmailAlreadyTaken):
 		return HTTPError{Status: http.StatusConflict, Code: "EMAIL_ALREADY_TAKEN", Message: err.Error()}
 	case errors.Is(err, domaindriver.ErrInvalidCredential):
@@ -58,6 +63,18 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusNotFound, Code: "VEHICLE_NOT_FOUND", Message: err.Error()}
 	case errors.Is(err, domainvehicle.ErrNoActiveVehicle):
 		return HTTPError{Status: http.StatusForbidden, Code: "NO_ACTIVE_VEHICLE", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrDocumentNotFound):
+		return HTTPError{Status: http.StatusNotFound, Code: "DOCUMENT_NOT_FOUND", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrDocumentForbidden):
+		return HTTPError{Status: http.StatusForbidden, Code: "DOCUMENT_FORBIDDEN", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrInvalidDocumentType):
+		return HTTPError{Status: http.StatusBadRequest, Code: "INVALID_DOCUMENT_TYPE", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrUploadNotConfirmed):
+		return HTTPError{Status: http.StatusBadRequest, Code: "UPLOAD_NOT_CONFIRMED", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrKycNotApproved):
+		return HTTPError{Status: http.StatusForbidden, Code: "KYC_NOT_APPROVED", Message: err.Error()}
+	case errors.Is(err, domainkyc.ErrVehicleNotVerified):
+		return HTTPError{Status: http.StatusForbidden, Code: "VEHICLE_NOT_VERIFIED", Message: err.Error()}
 	default:
 		return HTTPError{Status: http.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: "internal server error"}
 	}

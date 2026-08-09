@@ -41,14 +41,7 @@ func (r *DriverRepositoryGorm) Create(ctx context.Context, driver *domaindriver.
 	return nil
 }
 
-func (r *DriverRepositoryGorm) GetByEmail(ctx context.Context, email string) (*domaindriver.Driver, error) {
-	var model schemamodels.Driver
-	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&model).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domaindriver.ErrDriverNotFound
-		}
-		return nil, fmt.Errorf("find driver by email: %w", err)
-	}
+func toDomainDriver(model *schemamodels.Driver) *domaindriver.Driver {
 	return &domaindriver.Driver{
 		ID:              model.ID,
 		Email:           model.Email,
@@ -58,9 +51,21 @@ func (r *DriverRepositoryGorm) GetByEmail(ctx context.Context, email string) (*d
 		AccountStatus:   model.AccountStatus,
 		IsEmailVerified: model.IsEmailVerified,
 		IsOnline:        model.IsOnline,
+		KycStatus:       model.KycStatus,
 		CreatedAt:       model.CreatedAt,
 		UpdatedAt:       model.UpdatedAt,
-	}, nil
+	}
+}
+
+func (r *DriverRepositoryGorm) GetByEmail(ctx context.Context, email string) (*domaindriver.Driver, error) {
+	var model schemamodels.Driver
+	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domaindriver.ErrDriverNotFound
+		}
+		return nil, fmt.Errorf("find driver by email: %w", err)
+	}
+	return toDomainDriver(&model), nil
 }
 
 func (r *DriverRepositoryGorm) GetByID(ctx context.Context, id uuid.UUID) (*domaindriver.Driver, error) {
@@ -71,18 +76,7 @@ func (r *DriverRepositoryGorm) GetByID(ctx context.Context, id uuid.UUID) (*doma
 		}
 		return nil, fmt.Errorf("find driver by id: %w", err)
 	}
-	return &domaindriver.Driver{
-		ID:              model.ID,
-		Email:           model.Email,
-		PasswordHash:    model.PasswordHash,
-		FirstName:       model.FirstName,
-		LastName:        model.LastName,
-		AccountStatus:   model.AccountStatus,
-		IsEmailVerified: model.IsEmailVerified,
-		IsOnline:        model.IsOnline,
-		CreatedAt:       model.CreatedAt,
-		UpdatedAt:       model.UpdatedAt,
-	}, nil
+	return toDomainDriver(&model), nil
 }
 
 func (r *DriverRepositoryGorm) UpdateProfile(ctx context.Context, id uuid.UUID, firstName string, lastName string) (*domaindriver.Driver, error) {
@@ -112,6 +106,34 @@ func (r *DriverRepositoryGorm) UpdateOnlineStatus(ctx context.Context, id uuid.U
 	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		return nil, fmt.Errorf("update driver online status: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, domaindriver.ErrDriverNotFound
+	}
+
+	return r.GetByID(ctx, id)
+}
+
+// IsKycApproved satisfies application/vehicle's narrow DriverKycStatusReader
+// port, so that package can gate vehicle activation on KYC approval without
+// importing domain/driver's full Driver type or Repository interface.
+func (r *DriverRepositoryGorm) IsKycApproved(ctx context.Context, driverID uuid.UUID) (bool, error) {
+	driver, err := r.GetByID(ctx, driverID)
+	if err != nil {
+		return false, err
+	}
+	return driver.KycStatus == domaindriver.KycStatusApproved, nil
+}
+
+func (r *DriverRepositoryGorm) UpdateKycStatus(ctx context.Context, id uuid.UUID, kycStatus string) (*domaindriver.Driver, error) {
+	updates := map[string]interface{}{
+		"kyc_status": kycStatus,
+		"updated_at": time.Now().UTC(),
+	}
+
+	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return nil, fmt.Errorf("update driver kyc status: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return nil, domaindriver.ErrDriverNotFound

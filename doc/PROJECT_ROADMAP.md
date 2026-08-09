@@ -31,11 +31,11 @@ This roadmap was originally written as if `go-ride-backend` (the DDD monolith) w
 | 1 | Auth Module Stabilization | Completed | Production-ready signup/login with robust validation and error handling |
 | 2 | Identity Expansion (Rider + Driver Auth) | In Progress | Minimal driver signup/login and role-aware auth without full driver management |
 | 3 | Ride Booking Core | Built Elsewhere (Not Integrated) | Full ride request→assignment→completion lifecycle live in `go-ride-kafka-consumers`; no equivalent exists in `go-ride-backend` |
-| 4 | Driver and Fleet Domain | In Progress | Vehicle registration + online toggle live in `go-ride-backend`; nearest-driver dispatch lives in `go-ride-kafka-consumers`; KYC/verification still missing everywhere |
+| 4 | Driver and Fleet Domain | In Progress | Vehicle registration + online toggle live in `go-ride-backend`, now gated on per-driver and per-vehicle KYC verification (Phase 8); nearest-driver dispatch lives in `go-ride-kafka-consumers` |
 | 5 | Pricing and Payments | Built Elsewhere (Partial) | Fare estimate live in `go-ride-kafka-consumers`; surge hardcoded to 1.0; payments are cash-collection tracking only, no gateway/transaction history |
 | 6 | Notifications and Real-Time Updates | Built Elsewhere (Partial) | Websocket real-time updates fully live in `go-ride-kafka-consumers`; push/email notifications not implemented anywhere |
 | 7 | Observability and Reliability | Not Started | Only liveness health endpoints and graceful shutdown exist; no structured logs, metrics, or tracing |
-| 8 | Security and Compliance Hardening | Not Started | No secrets management, audit logging, CORS/security headers, or KYC document workflow anywhere |
+| 8 | Security and Compliance Hardening | In Progress | Driver-facing KYC document upload + per-driver/per-vehicle verification gating live; backoffice review (reviewer accounts, approve/reject endpoints, audit logging), secrets management, and CORS/security headers still not started |
 | 9 | Testing, QA, and Release | In Progress | Unit tests exist in `go-ride-backend`; `go-ride-kafka-consumers` has zero tests and no CI; `go-ride-backend` also has no CI |
 | 10 | Post-Completion STP Hardening | Not Started | Deferred auth hardening controls after core app completion |
 
@@ -165,9 +165,9 @@ Goal: Enable driver onboarding and assignment-ready availability tracking.
 
 ### Features
 
-- [ ] Driver profile and verification status — profile exists (`domain/driver/entity.go`); "verification" is only `account_status` (pending/active/blocked), no real KYC/verification workflow (see Phase 8 gap)
-- [x] Driver vehicle registration and active vehicle selection — `go-ride-backend` `application/vehicle/*` (register/list/get/update/activate/delete), fully tested
-- [x] Driver online/offline availability toggle — `go-ride-backend` `PATCH /driver/online`, `application/driver/update_online_status.go`, tested
+- [x] Driver profile and verification status — profile exists (`domain/driver/entity.go`); driver identity verification is now a real `kyc_status` workflow (`not_started`/`in_review`/`approved`/`rejected`) fed by document upload, not just the pre-existing `account_status` enum — see Phase 8
+- [x] Driver vehicle registration and active vehicle selection — `go-ride-backend` `application/vehicle/*` (register/list/get/update/activate/delete), fully tested; activation now also gated on that vehicle's own registration-document verification (Phase 8)
+- [x] Driver online/offline availability toggle — `go-ride-backend` `PATCH /driver/online`, `application/driver/update_online_status.go`, tested; going online now also gated on driver identity KYC and the active vehicle's verification (Phase 8)
 - [x] Nearest-driver query for dispatch candidates — `go-ride-kafka-consumers` `trip-dispatch-worker`, Haversine + S2-cell covering query over `driver_locations`
 
 ### Technical Tasks
@@ -180,7 +180,7 @@ Goal: Enable driver onboarding and assignment-ready availability tracking.
 
 - [x] Eligible drivers are discoverable for dispatch — confirmed via `trip-dispatch-worker` nearest-driver query
 - [x] Driver availability changes are reflected in near real-time — `driver-location-worker` + online/offline toggle
-- [ ] **New:** Driver verification/KYC status is a real workflow, not just a manually-set enum — not started (tracked in Phase 8)
+- [x] **New:** Driver verification/KYC status is a real workflow, not just a manually-set enum — driver-facing upload + per-driver/per-vehicle gating implemented; backoffice approve/reject is still manual (direct DB update), tracked in Phase 8
 
 ---
 
@@ -279,7 +279,7 @@ Goal: Reduce security risk and satisfy baseline compliance requirements.
 - [ ] Security headers middleware
 - [ ] Threat model and abuse-case checklist
 - [ ] Dependency vulnerability scanning in CI
-- [ ] Implement full vehicle and driver KYC with driver lincense upload , self image , govt id , car registration documents , etc — confirmed zero hits across `go-ride-backend`, `go-ride-kafka-consumers`, and `go-ride-db-schema`; this is completely unbuilt
+- [x] Implement driver and vehicle KYC document upload (driver license, selfie, govt ID, car registration) with per-driver and per-vehicle verification gating — driver-facing flow and gating implemented 2026-08-09; backoffice review/approval endpoints are still manual DB updates, see `doc/DRIVER_KYC_PLAN.md`
 
 ### Exit Criteria
 
@@ -288,7 +288,8 @@ Goal: Reduce security risk and satisfy baseline compliance requirements.
 
 ### Driver KYC & Document Verification
 
-- [ ] Document upload (selfie, govt ID, driving license, vehicle registration) with human backoffice approval gating driver online status and vehicle activation
+- [x] Document upload (selfie, govt ID, driving license, vehicle registration) gating driver online status and vehicle activation — two independent tracks: driver identity (`drivers.kyc_status`) and per-vehicle registration (derived from `driver_documents`, keyed by `vehicle_id`), both required to go online; the specific vehicle's own verification (not just the driver's) is checked on every activate/switch
+- [ ] Human backoffice approval flow — not built; approving/rejecting documents and `kyc_status` is a direct database update for now (no reviewer accounts, no review endpoints, no audit log)
 - [ ] AI pre-screening of document authenticity — future enhancement only, not a final verifier; out of scope for now
 
 Full implementation plan: [`doc/DRIVER_KYC_PLAN.md`](DRIVER_KYC_PLAN.md)
@@ -380,6 +381,7 @@ Reference notes for implementing the "Optional refresh token model and rotation 
 | 2026-08-02 | 10 | Added refresh token design notes (flow, rationale, rotation/storage practices) to guide future implementation of the deferred refresh-token feature. | Claude |
 | 2026-08-02 | 2-9 | Full audit of actual code vs. roadmap claims across `go-ride-backend`, `go-ride-kafka-consumers`, and `go-ride-db-schema`. Discovered ride booking, dispatch, fare estimation, and real-time notifications (Phases 3, 5, 6) are already substantially built, but as standalone services in sibling repos, not integrated into `go-ride-backend`. Updated phase statuses, checklists, and added an Identified Gaps section accordingly. | Claude |
 | 2026-08-08 | 8 | Added Driver KYC & Document Verification as a bulleted feature under Phase 8, with the detailed implementation plan (document types, schema, storage, review flow, and the out-of-scope AI pre-screening insertion point) moved to `doc/DRIVER_KYC_PLAN.md` to keep the roadmap itself at feature-tracking altitude. | Claude |
+| 2026-08-09 | 4, 8 | Implemented driver-facing KYC document upload and verification gating (`go-ride-backend` + `go-ride-db-schema` migrations `000021`-`000023`): presigned upload/confirm/status endpoints, driver identity `kyc_status` recomputed from 5 identity documents, and — after a scope correction mid-implementation — per-vehicle registration verification (not per-driver), so going online and activating/switching a vehicle each check that specific vehicle's own approval, not just the driver's. Backoffice review is still a manual DB update; reviewer accounts/endpoints/audit logging remain unbuilt. Updated Phase 4/8 statuses, checklists, and Identified Gaps #6 accordingly; full detail in `doc/DRIVER_KYC_PLAN.md`. | Claude |
 
 ## Identified Gaps
 
@@ -390,7 +392,7 @@ Gaps found during the 2026-08-02 audit that aren't fully captured by the phase c
 3. **`go-ride-backend` itself has no CI** (no `.github/workflows`), unlike `go-ride-db-schema` which already has one.
 4. **Payments are not real payments** — the only implemented flow is marking cash as collected at trip end (`payment_status`/`payment_collected_at`). No payment gateway integration, no transaction/invoice history, no failed-payment recovery.
 5. **Surge pricing is a hardcoded `1.0` multiplier**, not a configurable rules engine, despite Phase 5 listing it as a feature.
-6. **No KYC / driver document verification workflow anywhere** (license, selfie, government ID, vehicle registration upload) — zero hits across all three repos. Driver "verification" today is just a manually-set `account_status` enum. Full plan: [`doc/DRIVER_KYC_PLAN.md`](DRIVER_KYC_PLAN.md).
+6. ~~**No KYC / driver document verification workflow anywhere**~~ **Resolved 2026-08-09** for the driver-facing half: document upload (license, selfie, government ID, vehicle registration), per-driver identity `kyc_status`, per-vehicle registration verification, and gating on going online/activating a vehicle are all implemented. Still open: the backoffice approval side (reviewer accounts, review endpoints, audit logging) — approving/rejecting documents is a manual database update for now. Full plan: [`doc/DRIVER_KYC_PLAN.md`](DRIVER_KYC_PLAN.md).
 7. **No push or email notifications** — only websocket delivery exists, so users not actively connected miss ride events.
 8. **No structured logging, metrics, or distributed tracing**, despite a `correlation_id` field already being threaded through events/DB rows for this exact purpose — the plumbing for correlation exists but nothing consumes it yet.
 9. **No email verification workflow** — `is_email_verified` column exists but nothing sets it to `true`.

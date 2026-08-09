@@ -4,18 +4,20 @@ import (
 	"context"
 
 	domaindriver "go-ride-backend/domain/driver"
+	domainkyc "go-ride-backend/domain/kyc"
 	domainvehicle "go-ride-backend/domain/vehicle"
 
 	"github.com/google/uuid"
 )
 
 type UpdateOnlineStatusUseCase struct {
-	repo     domaindriver.Repository
-	vehicles VehicleLister
+	repo             domaindriver.Repository
+	vehicles         VehicleLister
+	vehicleDocuments VehicleDocumentApprovalReader
 }
 
-func NewUpdateOnlineStatusUseCase(repo domaindriver.Repository, vehicles VehicleLister) *UpdateOnlineStatusUseCase {
-	return &UpdateOnlineStatusUseCase{repo: repo, vehicles: vehicles}
+func NewUpdateOnlineStatusUseCase(repo domaindriver.Repository, vehicles VehicleLister, vehicleDocuments VehicleDocumentApprovalReader) *UpdateOnlineStatusUseCase {
+	return &UpdateOnlineStatusUseCase{repo: repo, vehicles: vehicles, vehicleDocuments: vehicleDocuments}
 }
 
 func (uc *UpdateOnlineStatusUseCase) Execute(ctx context.Context, driverID string, req UpdateOnlineStatusRequest) (*DriverResponse, error) {
@@ -25,12 +27,29 @@ func (uc *UpdateOnlineStatusUseCase) Execute(ctx context.Context, driverID strin
 	}
 
 	if req.IsOnline {
+		driver, err := uc.repo.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if driver.KycStatus != domaindriver.KycStatusApproved {
+			return nil, domainkyc.ErrKycNotApproved
+		}
+
 		vehicles, err := uc.vehicles.ListByDriver(ctx, id)
 		if err != nil {
 			return nil, err
 		}
-		if !hasActiveVehicle(vehicles) {
+		activeVehicle := findActiveVehicle(vehicles)
+		if activeVehicle == nil {
 			return nil, domainvehicle.ErrNoActiveVehicle
+		}
+
+		vehicleApproved, err := uc.vehicleDocuments.IsVehicleDocumentApproved(ctx, activeVehicle.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !vehicleApproved {
+			return nil, domainkyc.ErrVehicleNotVerified
 		}
 	}
 
@@ -43,11 +62,11 @@ func (uc *UpdateOnlineStatusUseCase) Execute(ctx context.Context, driverID strin
 	return &resp, nil
 }
 
-func hasActiveVehicle(vehicles []*domainvehicle.Vehicle) bool {
+func findActiveVehicle(vehicles []*domainvehicle.Vehicle) *domainvehicle.Vehicle {
 	for _, v := range vehicles {
 		if v.IsActive {
-			return true
+			return v
 		}
 	}
-	return false
+	return nil
 }

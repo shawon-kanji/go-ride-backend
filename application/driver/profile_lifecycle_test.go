@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	domaindriver "go-ride-backend/domain/driver"
+	domainkyc "go-ride-backend/domain/kyc"
 	domainvehicle "go-ride-backend/domain/vehicle"
 
 	"github.com/google/uuid"
@@ -17,6 +18,22 @@ type fakeVehicleLister struct {
 
 func (f *fakeVehicleLister) ListByDriver(_ context.Context, driverID uuid.UUID) ([]*domainvehicle.Vehicle, error) {
 	return f.byDriver[driverID], nil
+}
+
+// fakeVehicleDocumentApprovalReader reports every vehicle as verified by
+// default, so existing online-status tests don't need to know about
+// per-vehicle verification. Set approved to false to exercise the gating
+// path.
+type fakeVehicleDocumentApprovalReader struct {
+	approved bool
+}
+
+func newFakeVehicleDocumentApprovalReader() *fakeVehicleDocumentApprovalReader {
+	return &fakeVehicleDocumentApprovalReader{approved: true}
+}
+
+func (f *fakeVehicleDocumentApprovalReader) IsVehicleDocumentApproved(_ context.Context, _ uuid.UUID) (bool, error) {
+	return f.approved, nil
 }
 
 func TestGetProfileUseCaseExecuteSuccess(t *testing.T) {
@@ -76,12 +93,13 @@ func TestUpdateOnlineStatusUseCaseExecuteSuccess(t *testing.T) {
 			LastName:      "Bar",
 			AccountStatus: domaindriver.AccountStatusActive,
 			IsOnline:      false,
+			KycStatus:     domaindriver.KycStatusApproved,
 		},
 	}}
 	vehicles := &fakeVehicleLister{byDriver: map[uuid.UUID][]*domainvehicle.Vehicle{
 		driverID: {{ID: uuid.New(), DriverID: driverID, IsActive: true}},
 	}}
-	uc := NewUpdateOnlineStatusUseCase(repo, vehicles)
+	uc := NewUpdateOnlineStatusUseCase(repo, vehicles, newFakeVehicleDocumentApprovalReader())
 
 	resp, err := uc.Execute(context.Background(), driverID.String(), UpdateOnlineStatusRequest{IsOnline: true})
 	if err != nil {
@@ -94,7 +112,7 @@ func TestUpdateOnlineStatusUseCaseExecuteSuccess(t *testing.T) {
 
 func TestUpdateOnlineStatusUseCaseExecuteDriverNotFound(t *testing.T) {
 	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{}}
-	uc := NewUpdateOnlineStatusUseCase(repo, &fakeVehicleLister{})
+	uc := NewUpdateOnlineStatusUseCase(repo, &fakeVehicleLister{}, newFakeVehicleDocumentApprovalReader())
 
 	_, err := uc.Execute(context.Background(), uuid.New().String(), UpdateOnlineStatusRequest{IsOnline: false})
 	if !errors.Is(err, domaindriver.ErrDriverNotFound) {
@@ -113,16 +131,69 @@ func TestUpdateOnlineStatusUseCaseExecuteBlockedNoActiveVehicle(t *testing.T) {
 			LastName:      "Bar",
 			AccountStatus: domaindriver.AccountStatusActive,
 			IsOnline:      false,
+			KycStatus:     domaindriver.KycStatusApproved,
 		},
 	}}
 	vehicles := &fakeVehicleLister{byDriver: map[uuid.UUID][]*domainvehicle.Vehicle{
 		driverID: {{ID: uuid.New(), DriverID: driverID, IsActive: false}},
 	}}
-	uc := NewUpdateOnlineStatusUseCase(repo, vehicles)
+	uc := NewUpdateOnlineStatusUseCase(repo, vehicles, newFakeVehicleDocumentApprovalReader())
 
 	_, err := uc.Execute(context.Background(), driverID.String(), UpdateOnlineStatusRequest{IsOnline: true})
 	if !errors.Is(err, domainvehicle.ErrNoActiveVehicle) {
 		t.Fatalf("expected ErrNoActiveVehicle, got %v", err)
+	}
+}
+
+func TestUpdateOnlineStatusUseCaseExecuteBlockedKycNotApproved(t *testing.T) {
+	driverID := uuid.New()
+	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{
+		"foo@example.com": {
+			ID:            driverID,
+			Email:         "foo@example.com",
+			PasswordHash:  "hashed:password123",
+			FirstName:     "Foo",
+			LastName:      "Bar",
+			AccountStatus: domaindriver.AccountStatusActive,
+			IsOnline:      false,
+			KycStatus:     domaindriver.KycStatusInReview,
+		},
+	}}
+	vehicles := &fakeVehicleLister{byDriver: map[uuid.UUID][]*domainvehicle.Vehicle{
+		driverID: {{ID: uuid.New(), DriverID: driverID, IsActive: true}},
+	}}
+	uc := NewUpdateOnlineStatusUseCase(repo, vehicles, newFakeVehicleDocumentApprovalReader())
+
+	_, err := uc.Execute(context.Background(), driverID.String(), UpdateOnlineStatusRequest{IsOnline: true})
+	if !errors.Is(err, domainkyc.ErrKycNotApproved) {
+		t.Fatalf("expected ErrKycNotApproved, got %v", err)
+	}
+}
+
+func TestUpdateOnlineStatusUseCaseExecuteBlockedVehicleNotVerified(t *testing.T) {
+	driverID := uuid.New()
+	repo := &fakeDriverRepo{byEmail: map[string]*domaindriver.Driver{
+		"foo@example.com": {
+			ID:            driverID,
+			Email:         "foo@example.com",
+			PasswordHash:  "hashed:password123",
+			FirstName:     "Foo",
+			LastName:      "Bar",
+			AccountStatus: domaindriver.AccountStatusActive,
+			IsOnline:      false,
+			KycStatus:     domaindriver.KycStatusApproved,
+		},
+	}}
+	vehicles := &fakeVehicleLister{byDriver: map[uuid.UUID][]*domainvehicle.Vehicle{
+		driverID: {{ID: uuid.New(), DriverID: driverID, IsActive: true}},
+	}}
+	// Driver identity is approved, but the currently active vehicle's
+	// registration document isn't — going online must still be blocked.
+	uc := NewUpdateOnlineStatusUseCase(repo, vehicles, &fakeVehicleDocumentApprovalReader{approved: false})
+
+	_, err := uc.Execute(context.Background(), driverID.String(), UpdateOnlineStatusRequest{IsOnline: true})
+	if !errors.Is(err, domainkyc.ErrVehicleNotVerified) {
+		t.Fatalf("expected ErrVehicleNotVerified, got %v", err)
 	}
 }
 
@@ -139,7 +210,7 @@ func TestUpdateOnlineStatusUseCaseExecuteOfflineAlwaysAllowed(t *testing.T) {
 			IsOnline:      true,
 		},
 	}}
-	uc := NewUpdateOnlineStatusUseCase(repo, &fakeVehicleLister{})
+	uc := NewUpdateOnlineStatusUseCase(repo, &fakeVehicleLister{}, newFakeVehicleDocumentApprovalReader())
 
 	resp, err := uc.Execute(context.Background(), driverID.String(), UpdateOnlineStatusRequest{IsOnline: false})
 	if err != nil {
