@@ -12,13 +12,13 @@ tidy:
 	go mod tidy
 
 up:
-	docker compose up -d
+	cd ../go-ride-infra/local && docker compose up -d
 
 down:
-	docker compose down
+	cd ../go-ride-infra/local && docker compose down
 
 logs:
-	docker compose logs -f postgres
+	cd ../go-ride-infra/local && docker compose logs -f postgres aistor
 
 migrate-up:
 	cd ../go-ride-db-schema && go run ./cmd/migrate up

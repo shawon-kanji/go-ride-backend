@@ -28,10 +28,12 @@ DDD-styled Golang backend boilerplate for a cab booking app with user authentica
 cp .env.example .env
 ```
 
-2. Start PostgreSQL:
+2. Start backing services (PostgreSQL, AIStor). These are provisioned by the
+   consolidated compose file in the sibling `go-ride-infra` repo, not by
+   this repo:
 
 ```bash
-docker compose up -d
+make up
 ```
 
 3. Install deps:
@@ -84,7 +86,10 @@ JWT configuration supports issuer/audience claim validation through `JWT_ISSUER`
 
 ## Notes
 
-- `docker-compose.yml` provisions PostgreSQL with env-driven credentials.
+- Backing services (PostgreSQL, AIStor) are provisioned by
+  `go-ride-infra/local/docker-compose.yml`, shared with `go-ride-kafka-consumers`
+  — run `make up`/`make down`/`make logs` from this repo (they delegate
+  there), or run `docker compose` directly from `../go-ride-infra/local`.
 - Schema and migrations are managed by sibling package `go-ride-db-schema`.
 
 ## Deployment
