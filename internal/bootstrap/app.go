@@ -6,9 +6,11 @@ import (
 
 	appdriver "go-ride-backend/application/driver"
 	appkyc "go-ride-backend/application/kyc"
+	appplaces "go-ride-backend/application/places"
 	appuser "go-ride-backend/application/user"
 	appvehicle "go-ride-backend/application/vehicle"
 	"go-ride-backend/infrastructure/db"
+	"go-ride-backend/infrastructure/maps"
 	"go-ride-backend/infrastructure/repository"
 	"go-ride-backend/infrastructure/security"
 	"go-ride-backend/infrastructure/storage"
@@ -92,6 +94,16 @@ func Build(ctx context.Context, cfg *config.Config) (*App, error) {
 		kycGetStatusUseCase,
 	)
 
-	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, kycHandler, jwtManager)
+	placesProvider := maps.NewGoogleClient(cfg.Maps.ServerAPIKey)
+	placesAutocompleteUseCase := appplaces.NewAutocompleteUseCase(placesProvider)
+	placesDetailsUseCase := appplaces.NewPlaceDetailsUseCase(placesProvider)
+	placesReverseGeocodeUseCase := appplaces.NewReverseGeocodeUseCase(placesProvider)
+	placesHandler := handlers.NewPlacesHandler(
+		placesAutocompleteUseCase,
+		placesDetailsUseCase,
+		placesReverseGeocodeUseCase,
+	)
+
+	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, kycHandler, placesHandler, jwtManager)
 	return &App{Router: router}, nil
 }

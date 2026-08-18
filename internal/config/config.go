@@ -15,6 +15,7 @@ type Config struct {
 	DB      DBConfig
 	JWT     JWTConfig
 	Storage StorageConfig
+	Maps    MapsConfig
 }
 
 type ServerConfig struct {
@@ -51,6 +52,15 @@ type StorageConfig struct {
 	SecretAccessKey string
 	UsePathStyle    bool
 	PresignExpiry   time.Duration
+}
+
+// MapsConfig configures the Places/Geocoding proxy (POLISHED-MVP.md B2).
+// ServerAPIKey defaults to empty rather than failing Load — the rest of
+// the API is fully usable without it, so a missing key only breaks
+// requests that actually hit /api/v1/places/*, surfaced there as
+// PLACES_PROVIDER_UNAVAILABLE, not a boot-time failure for every route.
+type MapsConfig struct {
+	ServerAPIKey string
 }
 
 // Load reads configuration from the environment. In staging/production,
@@ -131,6 +141,9 @@ func Load(ctx context.Context) (*Config, error) {
 			SecretAccessKey: getEnv("STORAGE_SECRET_ACCESS_KEY", ""),
 			UsePathStyle:    storageUsePathStyle,
 			PresignExpiry:   time.Duration(storagePresignMinutes) * time.Minute,
+		},
+		Maps: MapsConfig{
+			ServerAPIKey: getEnv("GOOGLE_MAPS_SERVER_API_KEY", ""),
 		},
 	}
 

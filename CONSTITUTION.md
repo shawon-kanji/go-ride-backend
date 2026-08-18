@@ -13,7 +13,7 @@ deviating (see Article XIII).
 ## Article I — Layered Architecture
 
 Four layers, one-directional dependency flow:
-
+exit
 ```
 interfaces/http  →  application  →  domain  ←  infrastructure
 ```
@@ -48,6 +48,15 @@ Each aggregate gets its own package, `domain/<aggregate>/`, with exactly:
 Nothing else lives in `domain/`. If an aggregate seems to need more than
 these three files, that's a signal the aggregate boundary is wrong, not
 that this Article needs an exception.
+
+**Exception:** an aggregate with no persistence at all (nothing in
+`go-ride-db-schema` backs it — `domain/places` is the only one so far, a
+thin proxy over an external API) omits `repository.go` entirely. Its
+external-provider contract still isn't a domain concern — it lives in
+`application/<aggregate>/ports.go` as a narrow port (Article IV), exactly
+like `application/kyc/ports.go`'s `StoragePort` already does for S3. This
+isn't a second way to write `repository.go`; it's recognizing that a
+non-persisted aggregate never had a repository contract to begin with.
 
 ## Article III — Application Layer Shape
 
@@ -233,6 +242,7 @@ falsifiable against the current codebase.
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-08-09 | Initial ratification | Extracted from `domain/{driver,vehicle,user,kyc}` and `application/{driver,vehicle,user,kyc}`, written during the KYC feature's implementation as the first cross-cutting doc covering conventions rather than one feature. |
+| 2026-08-18 | Article II gains a `repository.go`-omission exception for non-persisted aggregates | `domain/places` (POLISHED-MVP.md B2: Google Places/Geocoding proxy) has no table in `go-ride-db-schema` and never will — there is no persistence contract to write. Forcing an empty `repository.go` into existence to satisfy the file count would be exactly the "quietly disagrees with it" case Article XIII warns about. |
 
 ---
-*Version 1.0.0 — Ratified 2026-08-09 — Last amended 2026-08-09*
+*Version 1.1.0 — Ratified 2026-08-09 — Last amended 2026-08-18*
