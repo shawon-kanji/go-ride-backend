@@ -97,18 +97,53 @@ func (r *DriverRepositoryGorm) UpdateProfile(ctx context.Context, id uuid.UUID, 
 	return r.GetByID(ctx, id)
 }
 
+// UpdateOnlineStatus flips drivers.is_online and, in the same transaction,
+// opens or closes a driver_online_sessions row -- the audit trail
+// POLISHED-MVP.md's C4 needed, since is_online alone can't answer "how long
+// has this driver been online today". The session write is idempotent
+// either direction: going online is an INSERT ... ON CONFLICT (driver_id)
+// WHERE ended_at IS NULL DO NOTHING (a driver already online again is a
+// no-op, not a duplicate open session — see the matching partial unique
+// index in go-ride-db-schema), and closing when no session is open is
+// simply a zero-row UPDATE, not an error (the primary is_online mutation's
+// own RowsAffected check below is what still guards "driver not found").
 func (r *DriverRepositoryGorm) UpdateOnlineStatus(ctx context.Context, id uuid.UUID, isOnline bool) (*domaindriver.Driver, error) {
-	updates := map[string]interface{}{
-		"is_online":  isOnline,
-		"updated_at": time.Now().UTC(),
-	}
+	now := time.Now().UTC()
 
-	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
-	if result.Error != nil {
-		return nil, fmt.Errorf("update driver online status: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, domaindriver.ErrDriverNotFound
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(map[string]interface{}{
+			"is_online":  isOnline,
+			"updated_at": now,
+		})
+		if result.Error != nil {
+			return fmt.Errorf("update driver online status: %w", result.Error)
+		}
+		if result.RowsAffected == 0 {
+			return domaindriver.ErrDriverNotFound
+		}
+
+		if isOnline {
+			if err := tx.Exec(
+				`INSERT INTO driver_online_sessions (id, driver_id, started_at, created_at, updated_at)
+				 VALUES (gen_random_uuid(), ?, ?, ?, ?)
+				 ON CONFLICT (driver_id) WHERE ended_at IS NULL DO NOTHING`,
+				id, now, now, now,
+			).Error; err != nil {
+				return fmt.Errorf("open driver online session: %w", err)
+			}
+			return nil
+		}
+
+		if err := tx.Exec(
+			`UPDATE driver_online_sessions SET ended_at = ?, updated_at = ? WHERE driver_id = ? AND ended_at IS NULL`,
+			now, now, id,
+		).Error; err != nil {
+			return fmt.Errorf("close driver online session: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return r.GetByID(ctx, id)
