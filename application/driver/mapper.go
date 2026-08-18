@@ -35,5 +35,6 @@ func ToDriverResponse(d *domaindriver.Driver) DriverResponse {
 		AccountStatus:   d.AccountStatus,
 		IsEmailVerified: d.IsEmailVerified,
 		IsOnline:        d.IsOnline,
+		IsPaused:        d.IsPaused,
 	}
 }

@@ -51,6 +51,7 @@ func toDomainDriver(model *schemamodels.Driver) *domaindriver.Driver {
 		AccountStatus:   model.AccountStatus,
 		IsEmailVerified: model.IsEmailVerified,
 		IsOnline:        model.IsOnline,
+		IsPaused:        model.IsPaused,
 		KycStatus:       model.KycStatus,
 		CreatedAt:       model.CreatedAt,
 		UpdatedAt:       model.UpdatedAt,
@@ -111,10 +112,17 @@ func (r *DriverRepositoryGorm) UpdateOnlineStatus(ctx context.Context, id uuid.U
 	now := time.Now().UTC()
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(map[string]interface{}{
+		updates := map[string]interface{}{
 			"is_online":  isOnline,
 			"updated_at": now,
-		})
+		}
+		// Going offline always clears a stale pause in the same statement:
+		// chk_drivers_is_paused_requires_online would otherwise reject this
+		// update outright for a driver who was paused when their shift ended.
+		if !isOnline {
+			updates["is_paused"] = false
+		}
+		result := tx.Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
 		if result.Error != nil {
 			return fmt.Errorf("update driver online status: %w", result.Error)
 		}
@@ -144,6 +152,23 @@ func (r *DriverRepositoryGorm) UpdateOnlineStatus(ctx context.Context, id uuid.U
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	return r.GetByID(ctx, id)
+}
+
+func (r *DriverRepositoryGorm) UpdatePauseStatus(ctx context.Context, id uuid.UUID, isPaused bool) (*domaindriver.Driver, error) {
+	updates := map[string]interface{}{
+		"is_paused":  isPaused,
+		"updated_at": time.Now().UTC(),
+	}
+
+	result := r.db.WithContext(ctx).Model(&schemamodels.Driver{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return nil, fmt.Errorf("update driver pause status: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, domaindriver.ErrDriverNotFound
 	}
 
 	return r.GetByID(ctx, id)

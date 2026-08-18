@@ -62,12 +62,14 @@ func Build(ctx context.Context, cfg *config.Config) (*App, error) {
 	driverGetProfileUseCase := appdriver.NewGetProfileUseCase(driverRepo)
 	driverUpdateProfileUseCase := appdriver.NewUpdateProfileUseCase(driverRepo)
 	driverUpdateOnlineStatusUseCase := appdriver.NewUpdateOnlineStatusUseCase(driverRepo, vehicleRepo, kycRepo)
+	driverUpdatePauseStatusUseCase := appdriver.NewUpdatePauseStatusUseCase(driverRepo)
 	driverHandler := handlers.NewDriverHandler(
 		driverSignupUseCase,
 		driverLoginUseCase,
 		driverGetProfileUseCase,
 		driverUpdateProfileUseCase,
 		driverUpdateOnlineStatusUseCase,
+		driverUpdatePauseStatusUseCase,
 	)
 
 	vehicleRegisterUseCase := appvehicle.NewRegisterUseCase(vehicleRepo)

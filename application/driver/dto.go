@@ -20,6 +20,7 @@ type DriverResponse struct {
 	AccountStatus   string `json:"account_status"`
 	IsEmailVerified bool   `json:"is_email_verified"`
 	IsOnline        bool   `json:"is_online"`
+	IsPaused        bool   `json:"is_paused"`
 }
 
 type UpdateProfileRequest struct {
@@ -38,4 +39,8 @@ type LoginResponse struct {
 
 type UpdateOnlineStatusRequest struct {
 	IsOnline bool `json:"is_online"`
+}
+
+type UpdatePauseStatusRequest struct {
+	IsPaused bool `json:"is_paused"`
 }

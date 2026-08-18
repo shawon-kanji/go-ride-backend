@@ -50,6 +50,8 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusUnauthorized, Code: "INVALID_CREDENTIALS", Message: err.Error()}
 	case errors.Is(err, domaindriver.ErrDriverNotFound):
 		return HTTPError{Status: http.StatusNotFound, Code: "DRIVER_NOT_FOUND", Message: err.Error()}
+	case errors.Is(err, domaindriver.ErrDriverNotOnline):
+		return HTTPError{Status: http.StatusConflict, Code: "DRIVER_NOT_ONLINE", Message: err.Error()}
 	case errors.Is(err, domainuser.ErrEmailAlreadyTaken):
 		return HTTPError{Status: http.StatusConflict, Code: "EMAIL_ALREADY_TAKEN", Message: err.Error()}
 	case errors.Is(err, domainuser.ErrInvalidCredential):

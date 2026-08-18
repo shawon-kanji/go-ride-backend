@@ -29,6 +29,7 @@ type Driver struct {
 	AccountStatus   string
 	IsEmailVerified bool
 	IsOnline        bool
+	IsPaused        bool
 	KycStatus       string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time

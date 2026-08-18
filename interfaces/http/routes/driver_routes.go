@@ -33,6 +33,7 @@ func registerDriverRoutes(v1 *gin.RouterGroup, driverHandler *handlers.DriverHan
 	driverProtected.GET("/profile", driverHandler.Me)
 	driverProtected.PATCH("/profile", driverHandler.UpdateProfile)
 	driverProtected.PATCH("/online", driverHandler.UpdateOnlineStatus)
+	driverProtected.PATCH("/pause", driverHandler.UpdatePauseStatus)
 
 	return driverProtected
 }

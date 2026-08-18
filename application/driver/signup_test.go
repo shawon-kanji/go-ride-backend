@@ -56,6 +56,16 @@ func (r *fakeDriverRepo) UpdateOnlineStatus(_ context.Context, id uuid.UUID, isO
 	return nil, domaindriver.ErrDriverNotFound
 }
 
+func (r *fakeDriverRepo) UpdatePauseStatus(_ context.Context, id uuid.UUID, isPaused bool) (*domaindriver.Driver, error) {
+	for _, d := range r.byEmail {
+		if d.ID == id {
+			d.IsPaused = isPaused
+			return d, nil
+		}
+	}
+	return nil, domaindriver.ErrDriverNotFound
+}
+
 func (r *fakeDriverRepo) UpdateKycStatus(_ context.Context, id uuid.UUID, kycStatus string) (*domaindriver.Driver, error) {
 	for _, d := range r.byEmail {
 		if d.ID == id {

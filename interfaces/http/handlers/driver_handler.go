@@ -15,6 +15,7 @@ type DriverHandler struct {
 	getProfileUseCase         *appdriver.GetProfileUseCase
 	updateProfileUseCase      *appdriver.UpdateProfileUseCase
 	updateOnlineStatusUseCase *appdriver.UpdateOnlineStatusUseCase
+	updatePauseStatusUseCase  *appdriver.UpdatePauseStatusUseCase
 }
 
 func NewDriverHandler(
@@ -23,6 +24,7 @@ func NewDriverHandler(
 	getProfileUseCase *appdriver.GetProfileUseCase,
 	updateProfileUseCase *appdriver.UpdateProfileUseCase,
 	updateOnlineStatusUseCase *appdriver.UpdateOnlineStatusUseCase,
+	updatePauseStatusUseCase *appdriver.UpdatePauseStatusUseCase,
 ) *DriverHandler {
 	return &DriverHandler{
 		signupUseCase:             signupUseCase,
@@ -30,6 +32,7 @@ func NewDriverHandler(
 		getProfileUseCase:         getProfileUseCase,
 		updateProfileUseCase:      updateProfileUseCase,
 		updateOnlineStatusUseCase: updateOnlineStatusUseCase,
+		updatePauseStatusUseCase:  updatePauseStatusUseCase,
 	}
 }
 
@@ -107,6 +110,23 @@ func (h *DriverHandler) UpdateOnlineStatus(c *gin.Context) {
 
 	driverID := c.GetString("user_id")
 	response, err := h.updateOnlineStatusUseCase.Execute(c.Request.Context(), driverID, req)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"driver": response})
+}
+
+func (h *DriverHandler) UpdatePauseStatus(c *gin.Context) {
+	var req appdriver.UpdatePauseStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_REQUEST", "message": "invalid request payload"})
+		return
+	}
+
+	driverID := c.GetString("user_id")
+	response, err := h.updatePauseStatusUseCase.Execute(c.Request.Context(), driverID, req)
 	if err != nil {
 		h.handleError(c, err)
 		return
