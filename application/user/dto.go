@@ -13,11 +13,13 @@ type LoginRequest struct {
 }
 
 type UserResponse struct {
-	ID            string `json:"id"`
-	Email         string `json:"email"`
-	FirstName     string `json:"first_name"`
-	LastName      string `json:"last_name"`
-	AccountStatus string `json:"account_status"`
+	ID            string   `json:"id"`
+	Email         string   `json:"email"`
+	FirstName     string   `json:"first_name"`
+	LastName      string   `json:"last_name"`
+	AccountStatus string   `json:"account_status"`
+	RatingAverage *float64 `json:"rating_average,omitempty"`
+	RatingCount   int      `json:"rating_count"`
 }
 
 type SignupResponse struct {

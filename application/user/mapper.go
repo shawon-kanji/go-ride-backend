@@ -24,5 +24,7 @@ func ToUserResponse(u *domainuser.User) UserResponse {
 		FirstName:     u.FirstName,
 		LastName:      u.LastName,
 		AccountStatus: u.AccountStatus,
+		RatingAverage: u.RatingAverage,
+		RatingCount:   u.RatingCount,
 	}
 }

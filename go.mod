@@ -69,3 +69,5 @@ require (
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
+
+replace github.com/shawon-kanji/go-ride-db-schema => ../go-ride-db-schema

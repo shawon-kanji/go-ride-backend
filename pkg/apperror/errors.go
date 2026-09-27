@@ -7,11 +7,13 @@ import (
 	appdriver "go-ride-backend/application/driver"
 	appkyc "go-ride-backend/application/kyc"
 	appplaces "go-ride-backend/application/places"
+	appsavedplace "go-ride-backend/application/savedplace"
 	appuser "go-ride-backend/application/user"
 	appvehicle "go-ride-backend/application/vehicle"
 	domaindriver "go-ride-backend/domain/driver"
 	domainkyc "go-ride-backend/domain/kyc"
 	domainplaces "go-ride-backend/domain/places"
+	domainsavedplace "go-ride-backend/domain/savedplace"
 	domainuser "go-ride-backend/domain/user"
 	domainvehicle "go-ride-backend/domain/vehicle"
 )
@@ -32,6 +34,7 @@ func Map(err error) HTTPError {
 	var vehicleValidationErr appvehicle.ValidationError
 	var kycValidationErr appkyc.ValidationError
 	var placesValidationErr appplaces.ValidationError
+	var savedPlaceValidationErr appsavedplace.ValidationError
 
 	switch {
 	case errors.As(err, &driverValidationErr):
@@ -44,6 +47,8 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: kycValidationErr.Message}
 	case errors.As(err, &placesValidationErr):
 		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: placesValidationErr.Message}
+	case errors.As(err, &savedPlaceValidationErr):
+		return HTTPError{Status: http.StatusBadRequest, Code: "VALIDATION_ERROR", Message: savedPlaceValidationErr.Message}
 	case errors.Is(err, domaindriver.ErrEmailAlreadyTaken):
 		return HTTPError{Status: http.StatusConflict, Code: "EMAIL_ALREADY_TAKEN", Message: err.Error()}
 	case errors.Is(err, domaindriver.ErrInvalidCredential):
@@ -88,6 +93,12 @@ func Map(err error) HTTPError {
 		return HTTPError{Status: http.StatusBadRequest, Code: "INVALID_PLACE_ID", Message: err.Error()}
 	case errors.Is(err, domainplaces.ErrProviderUnavailable):
 		return HTTPError{Status: http.StatusBadGateway, Code: "PLACES_PROVIDER_UNAVAILABLE", Message: "places provider is temporarily unavailable"}
+	case errors.Is(err, domainsavedplace.ErrSavedPlaceNotFound):
+		return HTTPError{Status: http.StatusNotFound, Code: "SAVED_PLACE_NOT_FOUND", Message: err.Error()}
+	case errors.Is(err, domainsavedplace.ErrSavedPlaceForbidden):
+		return HTTPError{Status: http.StatusForbidden, Code: "SAVED_PLACE_FORBIDDEN", Message: err.Error()}
+	case errors.Is(err, domainsavedplace.ErrPlaceTypeTaken):
+		return HTTPError{Status: http.StatusConflict, Code: "PLACE_TYPE_TAKEN", Message: err.Error()}
 	default:
 		return HTTPError{Status: http.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: "internal server error"}
 	}

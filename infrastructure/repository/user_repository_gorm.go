@@ -67,6 +67,8 @@ func (r *UserRepositoryGorm) GetByEmail(ctx context.Context, email string) (*dom
 		LastName:      model.LastName,
 		AccountStatus: model.AccountStatus,
 		DeactivatedAt: model.DeactivatedAt,
+		RatingAverage: model.RatingAverage,
+		RatingCount:   model.RatingCount,
 		CreatedAt:     model.CreatedAt,
 		UpdatedAt:     model.UpdatedAt,
 	}, nil
@@ -88,6 +90,8 @@ func (r *UserRepositoryGorm) GetByID(ctx context.Context, id uuid.UUID) (*domain
 		LastName:      model.LastName,
 		AccountStatus: model.AccountStatus,
 		DeactivatedAt: model.DeactivatedAt,
+		RatingAverage: model.RatingAverage,
+		RatingCount:   model.RatingCount,
 		CreatedAt:     model.CreatedAt,
 		UpdatedAt:     model.UpdatedAt,
 	}, nil

@@ -7,6 +7,7 @@ import (
 	appdriver "go-ride-backend/application/driver"
 	appkyc "go-ride-backend/application/kyc"
 	appplaces "go-ride-backend/application/places"
+	appsavedplace "go-ride-backend/application/savedplace"
 	appuser "go-ride-backend/application/user"
 	appvehicle "go-ride-backend/application/vehicle"
 	"go-ride-backend/infrastructure/db"
@@ -35,6 +36,7 @@ func Build(ctx context.Context, cfg *config.Config) (*App, error) {
 	driverRepo := repository.NewDriverRepositoryGorm(gormDB)
 	vehicleRepo := repository.NewVehicleRepositoryGorm(gormDB)
 	kycRepo := repository.NewKycRepositoryGorm(gormDB)
+	savedPlaceRepo := repository.NewSavedPlaceRepositoryGorm(gormDB)
 	hasher := security.NewBcryptHasher()
 	jwtManager := security.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryMinutes, cfg.JWT.Issuer, cfg.JWT.Audience, cfg.JWT.DriverAudience)
 
@@ -106,6 +108,17 @@ func Build(ctx context.Context, cfg *config.Config) (*App, error) {
 		placesReverseGeocodeUseCase,
 	)
 
-	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, kycHandler, placesHandler, jwtManager)
+	savedPlaceCreateUseCase := appsavedplace.NewCreateUseCase(savedPlaceRepo)
+	savedPlaceListUseCase := appsavedplace.NewListUseCase(savedPlaceRepo)
+	savedPlaceUpdateUseCase := appsavedplace.NewUpdateUseCase(savedPlaceRepo)
+	savedPlaceDeleteUseCase := appsavedplace.NewDeleteUseCase(savedPlaceRepo)
+	savedPlaceHandler := handlers.NewSavedPlaceHandler(
+		savedPlaceCreateUseCase,
+		savedPlaceListUseCase,
+		savedPlaceUpdateUseCase,
+		savedPlaceDeleteUseCase,
+	)
+
+	router := routes.NewRouter(authHandler, driverHandler, vehicleHandler, kycHandler, placesHandler, savedPlaceHandler, jwtManager)
 	return &App{Router: router}, nil
 }

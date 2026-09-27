@@ -27,11 +27,6 @@ func (uc *GetProfileUseCase) Execute(ctx context.Context, userID string) (*UserR
 		return nil, err
 	}
 
-	return &UserResponse{
-		ID:            usr.ID.String(),
-		Email:         usr.Email,
-		FirstName:     usr.FirstName,
-		LastName:      usr.LastName,
-		AccountStatus: usr.AccountStatus,
-	}, nil
+	resp := ToUserResponse(usr)
+	return &resp, nil
 }
